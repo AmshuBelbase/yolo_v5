@@ -13,6 +13,8 @@ Usage - sources:
                                                      'path/*.jpg'                    # glob
                                                      'https://youtu.be/LNwODJXcvt4'  # YouTube
                                                      'rtsp://example.com/media.mp4'  # RTSP, RTMP, HTTP stream
+    
+    $ python3 detect.py --weights runs/train/exp/weights/best.pt --source videos/video19.mp4 --data data/custom_data.yaml
 
 Usage - formats:
     $ python detect.py --weights yolov5s.pt                 # PyTorch
@@ -33,6 +35,7 @@ import csv
 import os
 import platform
 import sys
+import cv2
 from pathlib import Path
 
 import torch
@@ -249,6 +252,7 @@ def run(
                             fps, w, h = 30, im0.shape[1], im0.shape[0]
                         save_path = str(Path(save_path).with_suffix(".mp4"))  # force *.mp4 suffix on results videos
                         vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
+                    # cv2.imshow("output", im0s)
                     vid_writer[i].write(im0)
 
         # Print time (inference-only)
