@@ -1,0 +1,26 @@
+# path: /content/gdrive/MyDrive/yolov8/custom_data # dataset root dir
+path: /kaggle/input/ball-detection-set-2-r2/data
+train: images/train # train images (relative to 'path') 128 images
+val: images/val # val images (relative to 'path') 128 images
+test: images/test
+
+# Classes
+names:
+  0: red_ball
+  1: blue_ball
+  2: purple_ball
+  3: empty_silo
+  4: r_silo
+  5: b_silo
+  6: rr_silo
+  7: rb_silo
+  8: br_silo
+  9: bb_silo
+  10: rrr_silo
+  11: rrb_silo
+  12: rbr_silo
+  13: rbb_silo
+  14: brr_silo
+  15: brb_silo
+  16: bbr_silo
+  17: bbb_silo
