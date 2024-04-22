@@ -29,10 +29,10 @@ import numpy as np
 import torch
 import serial 
 import matplotlib.pyplot as plt
-cam_source = 1
-serial_port = '/dev/ttyACM0'
-baud_rate = 115200 
-ser = serial.Serial(serial_port, baud_rate, timeout=1)
+cam_source = 0
+# serial_port = '/dev/ttyACM0'
+# baud_rate = 115200 
+# ser = serial.Serial(serial_port, baud_rate, timeout=1)
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -155,6 +155,7 @@ def run(
             s += "%gx%g " % im.shape[2:]  # print string 
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
             if len(det):
+                # print(det)
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
 
@@ -165,6 +166,64 @@ def run(
 
                 # Write results
                 flag=0
+                short_det = det
+                # print(short_det)
+                nearest = width/2
+                final_top_left_x = width/4
+                final_top_left_y = height
+                final_bottom_right_x = width/4
+                final_bottom_right_y = height
+                final_xyxy = (final_top_left_x, final_top_left_y, final_bottom_right_x, final_bottom_right_y)
+                for *xyxy, conf, cls in reversed(short_det):
+                    c = int(cls)  # integer class
+                    # print(c)
+                    label = names[c] if hide_conf else f"{names[c]}"
+                    confidence = float(conf)
+                    confidence_str = f"{confidence:.2f}"  
+                    top_left_x = xyxy[0]
+                    top_left_y = xyxy[1]
+                    bottom_right_x = xyxy[2]
+                    bottom_right_y = xyxy[3]
+                    box_width = bottom_right_x - top_left_x
+                    box_height = bottom_right_y - top_left_y 
+                    if(top_left_x < width/2 and bottom_right_x < width/2):
+                        if view_img:  # Add bbox to image
+                            c = int(cls)  # integer class
+                            label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
+                            annotator.box_label(xyxy, label, color=colors(c, True))
+                        if c != 2:
+                            # Define the original range
+                            in_width_min = 0
+                            in_width_max = width / 2
+
+                            # Define the new range
+                            new_min = -(width / 4)
+                            new_max = (width / 4)
+
+
+                            # Value to map
+                            value = (top_left_x + bottom_right_x)//2
+
+                            # Map the value to the new range
+                            mapped_value = ((value - in_width_min) / (in_width_max - in_width_min)) * (new_max - new_min) + new_min
+                            actual_top_left_y = height - top_left_y
+
+                            h_dist = (float(abs(mapped_value)) ** 2 + float(actual_top_left_y ** 2)) ** 0.5
+
+                            if(h_dist < nearest):  
+                                nearest = h_dist 
+                                final_top_left_x = xyxy[0]
+                                final_top_left_y = xyxy[1]
+                                final_bottom_right_x = xyxy[2]
+                                final_bottom_right_y = xyxy[3]
+                                final_xyxy = (final_top_left_x, final_top_left_y, final_bottom_right_x, final_bottom_right_y)
+                
+                print("Nearest:", nearest)
+                if view_img:  # Add bbox to image
+                    c = int(cls)  # integer class
+                    label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
+                    annotator.box_label(final_xyxy, "nearest", color=(255, 255, 0)) 
+
                 for *xyxy, conf, cls in reversed(det): 
                     c = int(cls)  # integer class
                     label = names[c] if hide_conf else f"{names[c]}"
@@ -174,16 +233,17 @@ def run(
                     top_left_y = xyxy[1]
                     bottom_right_x = xyxy[2]
                     bottom_right_y = xyxy[3]
+                    
 
                     box_width = bottom_right_x - top_left_x
                     box_height = bottom_right_y - top_left_y
                     if(top_left_x < width/2 and bottom_right_x < width/2):  
                         # LOGGER.info(f"Class: {label}, Confidence: {confidence_str}, Top Left: {top_left_x}, {top_left_y}, Box Width: {box_width}, Box Height: {box_height}")
                         
-                        if view_img:  # Add bbox to image
-                            c = int(cls)  # integer class
-                            label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
-                            annotator.box_label(xyxy, label, color=colors(c, True)) 
+                        # if view_img:  # Add bbox to image
+                        #     c = int(cls)  # integer class
+                        #     label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
+                        #     annotator.box_label(xyxy, label, color=colors(c, True)) 
 
                         dist_ball = 0
                         if(box_width>box_height):
@@ -199,7 +259,6 @@ def run(
 
                         dist_ball = np.interp(dist_ball, width_height_max, ball_distance)
                         dist_ball = int(dist_ball)
-
                         
                         # Define the input and output range
                         i_min = 40
@@ -223,7 +282,7 @@ def run(
 
                         # LOGGER.info(f'distance - {dist_ball} scale factor - {scale_factor} linear_x - {linear_x} linear_y - {linear_y}')
 
-                        LOGGER.info(f"X: {linear_x}, Y: {linear_y}, Z: {0}")  
+                        # LOGGER.info(f"X: {linear_x}, Y: {linear_y}, Z: {0}")  
                         matrix_4x3 = np.array([[15.75, 0, -5.66909078166105],
                                             [0, 15.75, 5.66909078166105],
                                             [-15.75, 0, 5.66909078166105],
@@ -287,8 +346,8 @@ def run(
                         
                         # Send data
                         # time.sleep(0.05)
-                        ser.write(data.encode())  
-                        LOGGER.info(f"Sent: {data}")
+                        # ser.write(data.encode())  
+                        # LOGGER.info(f"Sent: {data}")
                         # LOGGER.info(f"Front Right: {result_matrix[0]}, Front Left: {result_matrix[1]}, Back Left: {result_matrix[2]}, Back Right: {result_matrix[3]}")
 
                         flag = 1  
