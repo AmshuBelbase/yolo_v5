@@ -195,7 +195,7 @@ def run(
                             c = int(cls)  # integer class
                             label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
                             annotator.box_label(xyxy, label, color=colors(c, True))
-                        if c != 2:
+                        if c == 0 or c == 1:
                             # Define the original range
                             in_width_min = 0
                             in_width_max = width / 2

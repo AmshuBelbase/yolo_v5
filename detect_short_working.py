@@ -19,14 +19,24 @@
 # """
 
 import argparse 
+import math
 import os
 import platform
+import time
 import sys
 import cv2
 from pathlib import Path
 import numpy as np
 import torch
-cam_source = 3
+import serial 
+import matplotlib.pyplot as plt
+
+time.sleep(17)
+
+cam_source = 2
+serial_port = '/dev/ttyACM0'
+baud_rate = 115200 
+ser = serial.Serial(serial_port, baud_rate, timeout=1)
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -143,10 +153,13 @@ def run(
             else:
                 p, im0 = path, im0s.copy()
 
+            width = im0.shape[1]
+            height = im0.shape[0]
             p = Path(p)  # to Path 
             s += "%gx%g " % im.shape[2:]  # print string 
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
             if len(det):
+                # print(det)
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
 
@@ -157,21 +170,171 @@ def run(
 
                 # Write results
                 flag=0
-                for *xyxy, conf, cls in reversed(det):
-                    if flag == 0:
-                        c = int(cls)  # integer class
-                        label = names[c] if hide_conf else f"{names[c]}"
-                        confidence = float(conf)
-                        confidence_str = f"{confidence:.2f}"  
-                        LOGGER.info(f"Class: {label}, Confidence: {confidence_str}, Top Left: {xyxy[0]}, {xyxy[1]}, Box Width: {xyxy[2] - xyxy[0]}, Box Height: {xyxy[3] - xyxy[1]}")
- 
+                short_det = det
+                # print(short_det)
+                nearest = width/2
+                final_top_left_x = width/4
+                final_top_left_y = height
+                final_bottom_right_x = width/4
+                final_bottom_right_y = height
+                final_xyxy = (final_top_left_x, final_top_left_y, final_bottom_right_x, final_bottom_right_y)
+                for *xyxy, conf, cls in reversed(short_det):
+                    c = int(cls)  # integer class
+                    # print(c)
+                    label = names[c] if hide_conf else f"{names[c]}"
+                    confidence = float(conf)
+                    confidence_str = f"{confidence:.2f}"  
+                    top_left_x = xyxy[0]
+                    top_left_y = xyxy[1]
+                    bottom_right_x = xyxy[2]
+                    bottom_right_y = xyxy[3]
+                    box_width = bottom_right_x - top_left_x
+                    box_height = bottom_right_y - top_left_y 
+                    if(top_left_x < width/2 and bottom_right_x < width/2):
                         if view_img:  # Add bbox to image
                             c = int(cls)  # integer class
                             label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
-                            annotator.box_label(xyxy, label, color=colors(c, True)) 
-                        flag = 1
+                            annotator.box_label(xyxy, label, color=colors(c, True))
+                        if c != 2:
+                            # Define the original range
+                            in_width_min = 0
+                            in_width_max = width / 2
+
+                            # Define the new range
+                            new_min = -(width / 4)
+                            new_max = (width / 4)
+
+
+                            # Value to map
+                            value = (top_left_x + bottom_right_x)//2
+
+                            # Map the value to the new range
+                            mapped_value = ((value - in_width_min) / (in_width_max - in_width_min)) * (new_max - new_min) + new_min
+                            actual_top_left_y = height - top_left_y
+
+                            h_dist = (float(abs(mapped_value)) ** 2 + float(actual_top_left_y ** 2)) ** 0.5
+
+                            if(h_dist < nearest):  
+                                nearest = h_dist 
+                                final_top_left_x = xyxy[0]
+                                final_top_left_y = xyxy[1]
+                                final_bottom_right_x = xyxy[2]
+                                final_bottom_right_y = xyxy[3]
+                                final_xyxy = (final_top_left_x, final_top_left_y, final_bottom_right_x, final_bottom_right_y)
+                
+                print("Nearest:", nearest)
+                if view_img:  # Add bbox to image
+                    c = int(cls)  # integer class
+                    label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
+                    annotator.box_label(final_xyxy, "nearest", color=(255, 255, 0)) 
+ 
+                if(nearest != width/2):
+                    dist_ball = 0
+                    box_width = final_bottom_right_x - final_top_left_x
+                    box_height = final_bottom_right_y - final_top_left_y 
+                    if(box_width>box_height):
+                        dist_ball = box_width
                     else:
-                        flag = 0
+                        dist_ball = box_height
+
+
+                    dist_ball = dist_ball.cpu().numpy()  # Move to CPU and convert to NumPy array
+
+                    width_height_max = [16, 18, 20, 21, 25, 28, 33, 40, 48, 54, 58, 64, 69, 74, 85]
+                    ball_distance = [310, 280, 250, 230, 200, 180, 150, 125, 100, 90, 80, 70, 60, 50, 40]
+
+                    dist_ball = np.interp(dist_ball, width_height_max, ball_distance)
+                    dist_ball = int(dist_ball)
+                        
+                    # Define the input and output range
+                    i_min = 40
+                    i_max = 310
+                    o_min = 50
+                    o_max = 20
+                    scale_factor = 80
+                    if(dist_ball > 310 or dist_ball < 40):
+                        scale_factor = 100
+                    else:
+                        scale_factor = (dist_ball-i_min) * (o_max-o_min) / (i_max - i_min) + o_min
+
+                    # LOGGER.info(f"Width: {width}, Height: {height}")  
+                     
+
+                    linear_x = (final_top_left_x - int(width/4))/scale_factor #nominal 40
+                    linear_y = (final_top_left_y - height)/scale_factor 
+
+                    # LOGGER.info(f'distance - {dist_ball} scale factor - {scale_factor} linear_x - {linear_x} linear_y - {linear_y}')
+
+                    # LOGGER.info(f"X: {linear_x}, Y: {linear_y}, Z: {0}")  
+                    # matrix_4x3 = np.array([[15.75, 0, -5.66909078166105],
+                    #                     [0, 15.75, 5.66909078166105],
+                    #                     [-15.75, 0, 5.66909078166105],
+                    #                     [0, -15.75,-5.66909078166105]]) 
+                    matrix_4x3 = np.array([[15.75, 0, -5.66909078166105],
+                                        [0, 15.75, -5.66909078166105],
+                                        [-15.75, 0, -5.66909078166105],
+                                        [0, -15.75,-5.66909078166105]]) 
+            
+                    # matrix_3x1 = np.array([[linear_x],
+                    #                     [linear_y],
+                    #                     [angular_z]])
+                    az = math.atan2(-linear_y, -linear_x)
+                    # Move the tensors to CPU and convert to NumPy arrays 
+                    linear_x_cpu = linear_x.cpu().numpy()
+                    linear_y_cpu = linear_y.cpu().numpy()   
+
+                    # LOGGER.info(f"X: {linear_x_cpu}, Y: {linear_y_cpu}, Z: {0}") 
+                    # Create the matrix_3x1 using the CPU tensors
+                    matrix_3x1 = np.array([linear_x_cpu, linear_y_cpu, az])  
+                    result_matrix = np.dot(matrix_4x3, matrix_3x1)        
+                        
+                        
+
+                    # Define floats to send
+                    fr = result_matrix[0]
+                    fl = result_matrix[1]
+                    bl = result_matrix[2]
+                    br = result_matrix[3]
+                    
+                    fr /=1.5
+                    fl /=1.5
+                    br /=1.5
+                    bl /=1.5                        
+
+                    # Convert to bytes
+                    data = (str(int(fr)) + '|' + 
+                            str(int(fl)) + '|' +
+                            str(int(bl)) + '|' +
+                            str(int(br))) + "#"
+                        
+                    # Send data
+                    # time.sleep(0.05)
+                    ser.write(data.encode())  
+                    LOGGER.info(f"Sent: {data}")
+                    # LOGGER.info(f"Front Right: {result_matrix[0]}, Front Left: {result_matrix[1]}, Back Left: {result_matrix[2]}, Back Right: {result_matrix[3]}")
+
+                    # flag = 1  
+                else:
+                    fr = -35.0
+                    fl = 35.0
+                    bl = -35.0
+                    br = 35.0
+                    
+                    # fr /=1.0
+                    # fl /=1.0
+                    # br /=1.0
+                    # bl /=1.0                        
+
+                    # Convert to bytes
+                    data = (str(int(fr)) + '|' + 
+                            str(int(fl)) + '|' +
+                            str(int(bl)) + '|' +
+                            str(int(br))) + "#"
+                        
+                    # Send data
+                    # time.sleep(0.05)
+                    ser.write(data.encode())  
+                    LOGGER.info(f"Sent: {data}")
 
             # Stream results
             im0 = annotator.result()
@@ -182,9 +345,34 @@ def run(
                     cv2.resizeWindow(str(p), im0.shape[1], im0.shape[0])
                 cv2.imshow(str(p), im0)
                 cv2.waitKey(1)  # 1 millisecond
+                # time.sleep(2)
+
  
 
         # Print time (inference-only)
+        if len(det):
+            pass 
+        else:
+            fr = -35.0
+            fl = 35.0
+            bl = -35.0
+            br = 35.0
+            
+            # fr /=1.0
+            # fl /=1.0
+            # br /=1.0
+            # bl /=1.0                        
+
+            # Convert to bytes
+            data = (str(int(fr)) + '|' + 
+                    str(int(fl)) + '|' +
+                    str(int(bl)) + '|' +
+                    str(int(br))) + "#"
+                
+            # Send data
+            # time.sleep(0.05)
+            ser.write(data.encode())  
+            LOGGER.info(f"Sent: {data}")
         LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
 
     # Print results
