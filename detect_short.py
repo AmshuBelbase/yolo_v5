@@ -30,6 +30,9 @@ import numpy as np
 import torch
 import serial 
 import matplotlib.pyplot as plt
+
+time.sleep(17)
+
 cam_source = 2
 serial_port = '/dev/ttyACM0'
 baud_rate = 115200 
@@ -302,7 +305,7 @@ def run(
                     data = (str(int(fr)) + '|' + 
                             str(int(fl)) + '|' +
                             str(int(bl)) + '|' +
-                            str(int(br))) + "\n"
+                            str(int(br))) + "#"
                         
                     # Send data
                     # time.sleep(0.05)
@@ -312,9 +315,9 @@ def run(
 
                     # flag = 1  
                 else:
-                    fr = 35.0
+                    fr = -35.0
                     fl = 35.0
-                    bl = 35.0
+                    bl = -35.0
                     br = 35.0
                     
                     # fr /=1.0
@@ -326,7 +329,7 @@ def run(
                     data = (str(int(fr)) + '|' + 
                             str(int(fl)) + '|' +
                             str(int(bl)) + '|' +
-                            str(int(br))) + "\n"
+                            str(int(br))) + "#"
                         
                     # Send data
                     # time.sleep(0.05)
@@ -350,9 +353,9 @@ def run(
         if len(det):
             pass 
         else:
-            fr = 35.0
+            fr = -35.0
             fl = 35.0
-            bl = 35.0
+            bl = -35.0
             br = 35.0
             
             # fr /=1.0
@@ -364,7 +367,7 @@ def run(
             data = (str(int(fr)) + '|' + 
                     str(int(fl)) + '|' +
                     str(int(bl)) + '|' +
-                    str(int(br))) + "\n"
+                    str(int(br))) + "#"
                 
             # Send data
             # time.sleep(0.05)
