@@ -31,7 +31,7 @@ import torch
 import serial 
 import matplotlib.pyplot as plt
 
-time.sleep(17)
+time.sleep(3)
 
 cam_source = 2
 serial_port = '/dev/ttyACM0'
@@ -315,10 +315,10 @@ def run(
 
                     # flag = 1  
                 else:
-                    fr = -30.0
-                    fl = 30.0
-                    bl = -30.0
-                    br = 30.0
+                    fr = -33.0
+                    fl = 33.0
+                    bl = -33.0
+                    br = 33.0
                     
                     # fr /=1.0
                     # fl /=1.0
@@ -353,10 +353,10 @@ def run(
         if len(det):
             pass 
         else:
-            fr = -30.0
-            fl = 30.0
-            bl = -30.0
-            br = 30.0
+            fr = -33.0
+            fl = 33.0
+            bl = -33.0
+            br = 33.0
             
             # fr /=1.0
             # fl /=1.0
