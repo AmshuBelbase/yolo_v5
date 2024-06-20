@@ -318,10 +318,10 @@ def run(
 
                     # flag = 1  
                 else:
-                    fr = -35.0
-                    fl = 35.0
-                    bl = -35.0
-                    br = 35.0                   
+                    fr = -45.0
+                    fl = 45.0
+                    bl = -45.0
+                    br = 45.0                   
 
                     # Convert to bytes
                     data = (str(int(fr)) + '|' + 
@@ -352,10 +352,10 @@ def run(
         if len(det):
             pass 
         else:
-            fr = -35.0
-            fl = 35.0
-            bl = -35.0
-            br = 35.0                    
+            fr = -45.0
+            fl = 45.0
+            bl = -45.0
+            br = 45.0                    
 
             # Convert to bytes
             data = (str(int(fr)) + '|' + 
