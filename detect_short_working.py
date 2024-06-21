@@ -172,6 +172,7 @@ def run(
                 flag=0
                 short_det = det
                 # print(short_det)
+                nearest_c = -1
                 nearest = width/2
                 final_top_left_x = width/4
                 final_top_left_y = height
@@ -195,7 +196,7 @@ def run(
                             c = int(cls)  # integer class
                             label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
                             annotator.box_label(xyxy, label, color=colors(c, True))
-                        if c != 2:
+                        if c == 0 or c == 2:
                             # Define the original range
                             in_width_min = 0
                             in_width_max = width / 2
@@ -216,6 +217,7 @@ def run(
 
                             if(h_dist < nearest):  
                                 nearest = h_dist 
+                                nearest_c = c
                                 final_top_left_x = xyxy[0]
                                 final_top_left_y = xyxy[1]
                                 final_bottom_right_x = xyxy[2]
@@ -305,7 +307,8 @@ def run(
                     data = (str(int(fr)) + '|' + 
                             str(int(fl)) + '|' +
                             str(int(bl)) + '|' +
-                            str(int(br))) + "#"
+                            str(int(br)) + '|' +
+                            str(int(nearest_c))) + "#"
                         
                     # Send data
                     # time.sleep(0.05)
@@ -315,21 +318,17 @@ def run(
 
                     # flag = 1  
                 else:
-                    fr = -35.0
-                    fl = 35.0
-                    bl = -35.0
-                    br = 35.0
-                    
-                    # fr /=1.0
-                    # fl /=1.0
-                    # br /=1.0
-                    # bl /=1.0                        
+                    fr = -45.0
+                    fl = 45.0
+                    bl = -45.0
+                    br = 45.0                   
 
                     # Convert to bytes
                     data = (str(int(fr)) + '|' + 
                             str(int(fl)) + '|' +
                             str(int(bl)) + '|' +
-                            str(int(br))) + "#"
+                            str(int(br)) + '|' +
+                            str(int(nearest_c))) + "#"
                         
                     # Send data
                     # time.sleep(0.05)
@@ -353,21 +352,17 @@ def run(
         if len(det):
             pass 
         else:
-            fr = -35.0
-            fl = 35.0
-            bl = -35.0
-            br = 35.0
-            
-            # fr /=1.0
-            # fl /=1.0
-            # br /=1.0
-            # bl /=1.0                        
+            fr = -45.0
+            fl = 45.0
+            bl = -45.0
+            br = 45.0                    
 
             # Convert to bytes
             data = (str(int(fr)) + '|' + 
                     str(int(fl)) + '|' +
                     str(int(bl)) + '|' +
-                    str(int(br))) + "#"
+                    str(int(br)) + '|' +
+                    str(int(-1))) + "#"
                 
             # Send data
             # time.sleep(0.05)
