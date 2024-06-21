@@ -31,7 +31,7 @@ import torch
 import serial 
 import matplotlib.pyplot as plt
 
-time.sleep(3)
+time.sleep(17)
 
 cam_source = 2
 serial_port = '/dev/ttyACM0'
