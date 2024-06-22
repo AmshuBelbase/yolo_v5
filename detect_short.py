@@ -31,12 +31,12 @@ import torch
 import serial 
 import matplotlib.pyplot as plt
 
-time.sleep(1)
+time.sleep(17)
 
 cam_source = 2
-# serial_port = '/dev/ttyACM0'
-# baud_rate = 115200 
-# ser = serial.Serial(serial_port, baud_rate, timeout=1)
+serial_port = '/dev/ttyACM0'
+baud_rate = 115200 
+ser = serial.Serial(serial_port, baud_rate, timeout=1)
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -333,7 +333,7 @@ def run(
                         
                     # Send data
                     # time.sleep(0.05)
-                    # ser.write(data.encode())  
+                    ser.write(data.encode())  
                     LOGGER.info(f"Sent: {data}")
                     # LOGGER.info(f"Front Right: {result_matrix[0]}, Front Left: {result_matrix[1]}, Back Left: {result_matrix[2]}, Back Right: {result_matrix[3]}")
 
@@ -353,7 +353,7 @@ def run(
                         
                     # Send data
                     # time.sleep(0.05)
-                    # ser.write(data.encode())  
+                    ser.write(data.encode())  
                     LOGGER.info(f"Sent: {data}")
 
             # Stream results
@@ -387,7 +387,7 @@ def run(
                 
             # Send data
             # time.sleep(0.05)
-            # ser.write(data.encode())  
+            ser.write(data.encode())  
             LOGGER.info(f"Sent: {data}")
         LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
 
