@@ -33,12 +33,12 @@ import matplotlib.pyplot as plt
 
 time.sleep(0.1)
 
-bot_default_turn_speed = 45
+bot_default_turn_speed = 60
 
 cam_source = 2
 serial_port = '/dev/ttyACM0'
 baud_rate = 115200 
-# ser = serial.Serial(serial_port, baud_rate, timeout=1)
+ser = serial.Serial(serial_port, baud_rate, timeout=1)
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -372,16 +372,20 @@ def run(
                         
                     # Send data
                     # time.sleep(0.05)
-                    # ser.write(data.encode())  
+                    ser.write(data.encode())  
                     LOGGER.info(f"Sent 1: {data}")
                     # LOGGER.info(f"Front Right: {result_matrix[0]}, Front Left: {result_matrix[1]}, Back Left: {result_matrix[2]}, Back Right: {result_matrix[3]}")
 
                     # flag = 1 
                 elif ball_silo == 1 and prio_silo != 0: 
                     box_width = final_bottom_right_x - final_top_left_x
-                    box_height = final_bottom_right_y - final_top_left_y  
+                    box_height = final_bottom_right_y - final_top_left_y 
+
+                    scale_factor = 120   
+
+                    if box_height > 50 or box_width>20: 
+                        scale_factor = 210  
  
-                    scale_factor = 200   
                      
 
                     linear_x = (final_top_left_x - int(width/4))/scale_factor #nominal 40
@@ -401,13 +405,16 @@ def run(
                     matrix_3x1 = np.array([linear_x_cpu, linear_y_cpu, az])  
                     result_matrix = np.dot(matrix_4x3, matrix_3x1)        
                         
-                        
-
-                    # Define floats to send
                     fr = result_matrix[0]
                     fl = result_matrix[1]
                     bl = result_matrix[2]
                     br = result_matrix[3]
+                    print(box_height, box_width)
+                    if box_height > 100 or box_width>75: 
+                        fr = 0
+                        fl = 0
+                        bl = 0
+                        br = 0
                     
                     fr /=1.5
                     fl /=1.5
@@ -423,107 +430,107 @@ def run(
                         
                     # Send data
                     # time.sleep(0.05)
-                    # ser.write(data.encode())  
+                    ser.write(data.encode())  
                     LOGGER.info(f"Sent 2: {data}") 
                 
-                # elif ball_silo == 1:
-                #     def detect_yellow(frame): 
-                #         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+                elif ball_silo == 1:
+                    def detect_yellow(frame): 
+                        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
                         
-                #         lower_yellow = np.array([20, 100, 100])
-                #         upper_yellow = np.array([30, 255, 255])
+                        lower_yellow = np.array([20, 100, 100])
+                        upper_yellow = np.array([30, 255, 255])
                         
-                #         mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+                        mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
                         
-                #         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-                #         width =  frame.shape[1] 
-                #         height = frame.shape[0] 
-                #         lx, ly, lw, lh, la = width/4, height, 0, 0, 0 
-                #         for contour in contours:
-                #             x, y, w, h = cv2.boundingRect(contour)
-                #             are = w*h
-                #             if are > 60000 and x <= width/2 and x+w <= width/2: #80000
-                #                 if(are > la):
-                #                     lx, ly, lw, lh, la = x, y, w, h, are
-                #                 xyxy_yellow = [x, y, x+w, y+h]
-                #                 annotator.box_label(xyxy_yellow, "Yellow Area", color=(0, 255, 255))
-                #                 # cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
-                #                 print(are, w, h)
-                #                 print(xyxy_yellow)
+                        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                        width =  frame.shape[1] 
+                        height = frame.shape[0] 
+                        lx, ly, lw, lh, la = width/4, height, 0, 0, 0 
+                        for contour in contours:
+                            x, y, w, h = cv2.boundingRect(contour)
+                            are = w*h
+                            if are > 60000 and x <= width/2 and x+w <= width/2: #80000
+                                if(are > la):
+                                    lx, ly, lw, lh, la = x, y, w, h, are
+                                xyxy_yellow = [x, y, x+w, y+h]
+                                annotator.box_label(xyxy_yellow, "Yellow Area", color=(0, 255, 255))
+                                # cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
+                                print(are, w, h)
+                                print(xyxy_yellow)
                         
-                #         if la != 0:           
-                #             lxyxy_yellow = [lx, ly, lx+lw, ly+lh]                   
-                #             annotator.box_label(lxyxy_yellow, "Largest Yellow Area", color=(0, 200, 200))
+                        if la != 0:           
+                            lxyxy_yellow = [lx, ly, lx+lw, ly+lh]                   
+                            annotator.box_label(lxyxy_yellow, "Largest Yellow Area", color=(0, 200, 200))
 
-                #             scale_factor_yellow = 80                          
+                            scale_factor = 30                          
 
-                #             linear_x_yellow = ((lx+lw/2) - int(width/4))/scale_factor_yellow #nominal 40
-                #             linear_y_yellow = ((ly+lh/2) - height)/scale_factor_yellow
+                            linear_x_yellow = ((lx+lw/2) - int(width/4))/scale_factor #nominal 40
+                            linear_y_yellow = ((ly+lh/2) - height)/scale_factor
 
-                #             lxyxy_yellow = [lx+(lw/2), ly+(lh/2), lx+(lw/2), ly+(lh/2)]                   
-                #             annotator.box_label(lxyxy_yellow, "Target", color=(200, 200, 200))
+                            lxyxy_yellow = [lx+(lw/2), ly+(lh/2), lx+(lw/2), ly+(lh/2)]                   
+                            annotator.box_label(lxyxy_yellow, "Target", color=(200, 200, 200))
                             
-                #             matrix_4x3 = np.array([[15.75, 0, -5.66909078166105],
-                #                                 [0, 15.75, -5.66909078166105],
-                #                                 [-15.75, 0, -5.66909078166105],
-                #                                 [0, -15.75,-5.66909078166105]]) 
+                            matrix_4x3 = np.array([[15.75, 0, -5.66909078166105],
+                                                [0, 15.75, -5.66909078166105],
+                                                [-15.75, 0, -5.66909078166105],
+                                                [0, -15.75,-5.66909078166105]]) 
                             
-                #             az = math.atan2(-linear_y_yellow, -linear_x_yellow)
-                #             # Move the tensors to CPU and convert to NumPy arrays 
-                #             linear_x_cpu_yellow = linear_x_yellow
-                #             linear_y_cpu_yellow = linear_y_yellow   
+                            az = math.atan2(-linear_y_yellow, -linear_x_yellow)
+                            # Move the tensors to CPU and convert to NumPy arrays 
+                            linear_x_cpu = linear_x_yellow
+                            linear_y_cpu = linear_y_yellow   
 
-                #             # LOGGER.info(f"X: {linear_x_cpu}, Y: {linear_y_cpu}, Z: {0}") 
-                #             # Create the matrix_3x1 using the CPU tensors
-                #             matrix_3x1 = np.array([linear_x_cpu_yellow, linear_y_cpu_yellow, az])  
-                #             result_matrix = np.dot(matrix_4x3, matrix_3x1)        
+                            # LOGGER.info(f"X: {linear_x_cpu}, Y: {linear_y_cpu}, Z: {0}") 
+                            # Create the matrix_3x1 using the CPU tensors
+                            matrix_3x1 = np.array([linear_x_cpu, linear_y_cpu, az])  
+                            result_matrix = np.dot(matrix_4x3, matrix_3x1)        
                                 
                                 
 
-                #             # Define floats to send
-                #             fr = result_matrix[0]
-                #             fl = result_matrix[1]
-                #             bl = result_matrix[2]
-                #             br = result_matrix[3]
+                            # Define floats to send
+                            fr = result_matrix[0]
+                            fl = result_matrix[1]
+                            bl = result_matrix[2]
+                            br = result_matrix[3]
                             
-                #             fr /=1
-                #             fl /=1
-                #             br /=1
-                #             bl /=1                        
+                            fr /=1
+                            fl /=1
+                            br /=1
+                            bl /=1                        
 
-                #             # Convert to bytes
-                #             data = (str(int(fr)) + '|' + 
-                #                     str(int(fl)) + '|' +
-                #                     str(int(bl)) + '|' +
-                #                     str(int(br)) + '|' +
-                #                     str(int(-1))) + "#"
+                            # Convert to bytes
+                            data = (str(int(fr)) + '|' + 
+                                    str(int(fl)) + '|' +
+                                    str(int(bl)) + '|' +
+                                    str(int(br)) + '|' +
+                                    str(int(-1))) + "#"
                                 
-                #             # Send data
-                #             # time.sleep(0.05)
-                #             # ser.write(data.encode())  
-                #             LOGGER.info(f"Sent 3: {data}")
-                #         else:
-                #             fr = -bot_default_turn_speed
-                #             fl = bot_default_turn_speed
-                #             bl = -bot_default_turn_speed
-                #             br = bot_default_turn_speed                    
+                            # Send data
+                            # time.sleep(0.05)
+                            ser.write(data.encode())  
+                            LOGGER.info(f"Sent 6: {data}")
+                        else:
+                            fr = -bot_default_turn_speed
+                            fl = bot_default_turn_speed
+                            bl = -bot_default_turn_speed
+                            br = bot_default_turn_speed                    
 
-                #             # Convert to bytes
-                #             data = (str(int(fr)) + '|' + 
-                #                     str(int(fl)) + '|' +
-                #                     str(int(bl)) + '|' +
-                #                     str(int(br)) + '|' +
-                #                     str(int(-1))) + "#"
+                            # Convert to bytes
+                            data = (str(int(fr)) + '|' + 
+                                    str(int(fl)) + '|' +
+                                    str(int(bl)) + '|' +
+                                    str(int(br)) + '|' +
+                                    str(int(-1))) + "#"
                                 
-                #             # Send data
-                #             # time.sleep(0.05)
-                #             # ser.write(data.encode())  
-                #             LOGGER.info(f"Sent 4: {data}")
+                            # Send data
+                            # time.sleep(0.05)
+                            ser.write(data.encode())  
+                            LOGGER.info(f"Sent 7: {data}")        
 
-                #         return frame  
+                        return frame  
                         
-                #     frame = im0s[i].copy()
-                #     detect_yellow(frame) 
+                    frame = im0s[i].copy()
+                    detect_yellow(frame)
                       
                 elif ball_silo == 0:
                     fr = -bot_default_turn_speed
@@ -540,9 +547,9 @@ def run(
                         
                     # Send data
                     # time.sleep(0.05)
-                    # ser.write(data.encode())  
+                    ser.write(data.encode())  
                     LOGGER.info(f"Sent 5: {data}")
-            elif ball_silo == 1 or prio_silo == 0:
+            elif ball_silo == 1:
                 def detect_yellow(frame): 
                     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
                     
@@ -571,7 +578,7 @@ def run(
                         lxyxy_yellow = [lx, ly, lx+lw, ly+lh]                   
                         annotator.box_label(lxyxy_yellow, "Largest Yellow Area", color=(0, 200, 200))
 
-                        scale_factor = 80                          
+                        scale_factor =30                          
 
                         linear_x_yellow = ((lx+lw/2) - int(width/4))/scale_factor #nominal 40
                         linear_y_yellow = ((ly+lh/2) - height)/scale_factor
@@ -616,7 +623,7 @@ def run(
                             
                         # Send data
                         # time.sleep(0.05)
-                        # ser.write(data.encode())  
+                        ser.write(data.encode())  
                         LOGGER.info(f"Sent 6: {data}")
                     else:
                         fr = -bot_default_turn_speed
@@ -633,8 +640,8 @@ def run(
                             
                         # Send data
                         # time.sleep(0.05)
-                        # ser.write(data.encode())  
-                        LOGGER.info(f"Sent 7: {data}")        
+                        ser.write(data.encode())  
+                        LOGGER.info(f"Sent 11: {data}")        
 
                     return frame  
                     
@@ -671,7 +678,7 @@ def run(
                 
             # Send data
             # time.sleep(0.05)
-            # ser.write(data.encode())  
+            ser.write(data.encode())  
             LOGGER.info(f"Sent 8: {data}")
         elif ball_silo == 1:
                 def detect_yellow(frame): 
@@ -702,7 +709,7 @@ def run(
                         lxyxy_yellow = [lx, ly, lx+lw, ly+lh]                   
                         annotator.box_label(lxyxy_yellow, "Largest Yellow Area", color=(0, 200, 200))
 
-                        scale_factor = 80                          
+                        scale_factor = 30                          
 
                         linear_x_yellow = ((lx+lw/2) - int(width/4))/scale_factor #nominal 40
                         linear_y_yellow = ((ly+lh/2) - height)/scale_factor
@@ -747,7 +754,7 @@ def run(
                             
                         # Send data
                         # time.sleep(0.05)
-                        # ser.write(data.encode())  
+                        ser.write(data.encode())  
                         LOGGER.info(f"Sent 9: {data}")
                     else:
                         fr = -bot_default_turn_speed
@@ -764,7 +771,7 @@ def run(
                             
                         # Send data
                         # time.sleep(0.05)
-                        # ser.write(data.encode())  
+                        ser.write(data.encode())  
                         LOGGER.info(f"Sent 10: {data}")
 
                     return frame  
