@@ -179,7 +179,9 @@ def run(
                 final_bottom_right_x = width/4
                 final_bottom_right_y = height
                 final_xyxy = (final_top_left_x, final_top_left_y, final_bottom_right_x, final_bottom_right_y)
+                counter = 0
                 for *xyxy, conf, cls in reversed(short_det):
+                    counter +=1
                     c = int(cls)  # integer class
                     # print(c)
                     label = names[c] if hide_conf else f"{names[c]}"
@@ -215,14 +217,33 @@ def run(
 
                             h_dist = (float(abs(mapped_value)) ** 2 + float(actual_top_left_y ** 2)) ** 0.5
 
-                            if(h_dist < nearest):  
-                                nearest = h_dist 
-                                nearest_c = c
-                                final_top_left_x = xyxy[0]
-                                final_top_left_y = xyxy[1]
-                                final_bottom_right_x = xyxy[2]
-                                final_bottom_right_y = xyxy[3]
-                                final_xyxy = (final_top_left_x, final_top_left_y, final_bottom_right_x, final_bottom_right_y)
+                            if(h_dist < nearest):
+                                is_inside = False  
+                                offset = 15   
+                                if c == 2:  
+                                    counter_in = 0
+                                    for *xyxy_in, conf_in, cls_in in reversed(short_det):
+                                        if counter != counter_in and cls_in != 2 and not is_inside and xyxy_in[0] < width/2 and xyxy_in[2] < width/2: 
+                                            vertices_rect_in = [
+                                                (xyxy_in[0], xyxy_in[1]),
+                                                (xyxy_in[0], xyxy_in[3]),
+                                                (xyxy_in[2], xyxy_in[1]),
+                                                (xyxy_in[2], xyxy_in[3])
+                                            ]
+                                            annotator.box_label(xyxy_in, "checck", color=(100, 100, 0)) 
+                                            for vertex in vertices_rect_in:
+                                                x, y = vertex
+                                                if (xyxy[0] - offset) <= x <= (xyxy[2] + offset) and (xyxy[1] - offset) <= y <= (xyxy[3]+ offset):
+                                                    is_inside = True 
+                                        counter_in += 1
+                                if is_inside or c!=2:
+                                    nearest = h_dist 
+                                    nearest_c = c
+                                    final_top_left_x = xyxy[0]
+                                    final_top_left_y = xyxy[1]
+                                    final_bottom_right_x = xyxy[2]
+                                    final_bottom_right_y = xyxy[3]
+                                    final_xyxy = (final_top_left_x - offset, final_top_left_y - offset, final_bottom_right_x + offset, final_bottom_right_y + offset)
                 
                 print("Nearest:", nearest)
                 if view_img:  # Add bbox to image
@@ -369,7 +390,7 @@ def run(
             ser.write(data.encode())  
             LOGGER.info(f"Sent: {data}")
         LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
-
+        
     # Print results
     t = tuple(x.t / seen * 1e3 for x in dt)  # speeds per image
     LOGGER.info(f"Speed: %.1fms pre-process, %.1fms inference, %.1fms NMS per image at shape {(1, 3, *imgsz)}" % t) 

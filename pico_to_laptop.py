@@ -1,38 +1,53 @@
 import serial
 import time
 
-serial_port = '/dev/ttyACM0'  # Adjust this to match your serial port
-baudrate = 115200  # Match this to the baud rate set on your Pico
+serial_port = '/dev/ttyACM0'
+baud_rate = 115200 
+ser = serial.Serial(serial_port, baud_rate, timeout=1)
 
-try:
-    # Open the serial connection
-    serial_connection = serial.Serial(serial_port, baudrate)
-    print(f"Serial port {serial_port} opened successfully.")
+while True:
+    if ser.in_waiting > 0:
+        # Read data from the serial port
+        data = ser.readline().strip().decode()
+        print(f"{data}")
+        
+        # Check if received data is "6"
+        if int(data) == 6:
+            print("Received 6")
+    else:
+        print("..")
 
-    while True:
-        if serial_connection.in_waiting > 0:
-            # Read data from the serial port
-            data = serial_connection.readline().strip().decode()
-            print(f"{data}")
+    time.sleep(2)  # Adjust as needed to control the polling frequency
+
+
+
+# try:
+#     # Open the serial connection 
+
+#     while True:
+#         if ser.in_waiting > 0:
+#             # Read data from the serial port
+#             data = ser.readline().strip().decode()
+#             print(f"{data}")
             
-            # Check if received data is "6"
-            if data == "6":
-                print("Received 6")
-        else:
-            print("..")
+#             # Check if received data is "6"
+#             if int(data) == 6:
+#                 print("Received 6")
+#         else:
+#             print("..")
 
-        time.sleep(2)  # Adjust as needed to control the polling frequency
+#         time.sleep(2)  # Adjust as needed to control the polling frequency
 
-except serial.serialutil.SerialException as e:
-    print(f"SerialException: {e}")
+# except serial.serialutil.SerialException as e:
+#     print(f"SerialException: {e}")
 
-except KeyboardInterrupt:
-    print("\nSerial communication interrupted by user.")
+# except KeyboardInterrupt:
+#     print("\nSerial communication interrupted by user.")
 
-finally:
-    if 'serial_connection' in locals() and serial_connection.isOpen():
-        serial_connection.close()
-        print("Serial port closed.")
+# finally:
+#     if 'serial_connection' in locals() and ser.isOpen():
+#         ser.close()
+#         print("Serial port closed.")
 
 
 # import serial
