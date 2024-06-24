@@ -33,7 +33,7 @@ import matplotlib.pyplot as plt
 
 time.sleep(0.1)
 
-bot_default_turn_speed = 20
+bot_default_turn_speed = 35
 
 cam_source = 2
 serial_port = '/dev/ttyACM0'
@@ -395,7 +395,7 @@ def run(
                                         [0, -15.75,-5.66909078166105]])  
                     
                     near_far = -4 # -2 : Yellow | -1 : No Detection | -3 : Near | -4 : Far | -5 : Aligned
-
+                    silo_center =  final_top_left_x + (box_width/2) - 25 - int(width/4)
                     if box_height > 180 or box_width>90:  # 150 75
                         near_far = -3
                         silo_center =  final_top_left_x + (box_width/2) - 25 - int(width/4)
@@ -415,6 +415,11 @@ def run(
                     fl = result_matrix[1]
                     bl = result_matrix[2]
                     br = result_matrix[3] 
+
+                    if abs(silo_center) < 5:
+                        fr = 0
+                        bl = 0
+                        near_far = -5
                     
                     # if box_height > 250 or box_width>150:  # 150 75 
                     #     fr = 0
@@ -459,7 +464,7 @@ def run(
                             msg_d = "Area Unchecked"+str(are)
                             annotator.box_label(xyxy_yellow, msg_d, color=(0,0,0))
                                 
-                            if are > 35000 and x <= width/2 and x+w <= width/2: #80000
+                            if are > 45000 and x <= width/2 and x+w <= width/2: #80000
                                 if(are > la):
                                     lx, ly, lw, lh, la = x, y, w, h, are
                                 xyxy_yellow = [x, y, x+w, y+h]
