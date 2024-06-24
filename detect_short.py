@@ -35,6 +35,7 @@ time.sleep(0.1)
 
 bot_default_turn_speed = 35
 
+ball_silo = 1 # 0 : ball | 1 : silo
 cam_source = 2
 serial_port = '/dev/ttyACM0'
 baud_rate = 115200 
@@ -95,8 +96,6 @@ def run(
     dnn=False,  # use OpenCV DNN for ONNX inference
     vid_stride=1,  # video frame-rate stride
 ):
-    
-    ball_silo = 1 # 0 : ball | 1 : silo
     source = str(source)  
     webcam = source.isnumeric() or source.endswith(".streams") 
 
