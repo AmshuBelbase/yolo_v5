@@ -33,7 +33,7 @@ import matplotlib.pyplot as plt
 
 time.sleep(0.1)
 
-bot_default_turn_speed = 60
+bot_default_turn_speed = 20
 
 cam_source = 2
 serial_port = '/dev/ttyACM0'
@@ -273,7 +273,7 @@ def run(
                             elif defence_mode == 1:
                                 arr_prio = [30, 30, 30, 3, 4, 5, 1, 1, 1, 2, 30,30,30,30,30,30,30,30]
 
-                            if arr_prio[c] < arr_prio[prio_silo] and arr_prio[c] != 30:                                
+                            if arr_prio[c] != 30 and (arr_prio[c] < arr_prio[prio_silo] or (arr_prio[c] == arr_prio[prio_silo] and abs(xyxy[0] - int(width/4)) < abs(final_top_left_x - int(width/4)))):     
                                 prio_silo = c
                                 final_top_left_x = xyxy[0]
                                 final_top_left_y = xyxy[1]
@@ -380,23 +380,29 @@ def run(
                 elif ball_silo == 1 and prio_silo != 0: 
                     box_width = final_bottom_right_x - final_top_left_x
                     box_height = final_bottom_right_y - final_top_left_y 
+                    print(box_width, box_height)
+                    scale_factor = 10   
 
-                    scale_factor = 120   
+                    if box_height > 90 or box_width>45: 
+                        scale_factor = 80                       
 
-                    if box_height > 50 or box_width>20: 
-                        scale_factor = 210  
- 
-                     
-
-                    linear_x = (final_top_left_x - int(width/4))/scale_factor #nominal 40
-                    linear_y = (final_top_left_y - height)/scale_factor 
+                    linear_x = (final_top_left_x + (box_width/2) - 25 - int(width/4))/scale_factor #nominal 40
+                    linear_y = (final_top_left_y + (box_height/2) - height)/scale_factor 
                     
                     matrix_4x3 = np.array([[15.75, 0, -5.66909078166105],
                                         [0, 15.75, -5.66909078166105],
                                         [-15.75, 0, -5.66909078166105],
                                         [0, -15.75,-5.66909078166105]])  
                     
-                    az = math.atan2(-linear_y, -linear_x)
+                    near_far = -4 # -2 : Yellow | -1 : No Detection | -3 : Near | -4 : Far | -5 : Aligned
+
+                    if box_height > 180 or box_width>90:  # 150 75
+                        near_far = -3
+                        silo_center =  final_top_left_x + (box_width/2) - 25 - int(width/4)
+                        print("Silo Center : ", silo_center) 
+                    
+                    # az = math.atan2(-linear_y, -linear_x)
+                    az = 0
                     # Move the tensors to CPU and convert to NumPy arrays 
                     linear_x_cpu = linear_x.cpu().numpy()
                     linear_y_cpu = linear_y.cpu().numpy()   
@@ -408,13 +414,13 @@ def run(
                     fr = result_matrix[0]
                     fl = result_matrix[1]
                     bl = result_matrix[2]
-                    br = result_matrix[3]
-                    print(box_height, box_width)
-                    if box_height > 100 or box_width>75: 
-                        fr = 0
-                        fl = 0
-                        bl = 0
-                        br = 0
+                    br = result_matrix[3] 
+                    
+                    # if box_height > 250 or box_width>150:  # 150 75 
+                    #     fr = 0
+                    #     fl = 0
+                    #     bl = 0
+                    #     br = 0
                     
                     fr /=1.5
                     fl /=1.5
@@ -426,7 +432,7 @@ def run(
                             str(int(fl)) + '|' +
                             str(int(bl)) + '|' +
                             str(int(br)) + '|' +
-                            str(int(nearest_c))) + "#"
+                            str(int(near_far))) + "#"
                         
                     # Send data
                     # time.sleep(0.05)
@@ -449,25 +455,34 @@ def run(
                         for contour in contours:
                             x, y, w, h = cv2.boundingRect(contour)
                             are = w*h
-                            if are > 60000 and x <= width/2 and x+w <= width/2: #80000
+                            xyxy_yellow = [x, y, x+w, y+h]
+                            msg_d = "Area Unchecked"+str(are)
+                            annotator.box_label(xyxy_yellow, msg_d, color=(0,0,0))
+                                
+                            if are > 35000 and x <= width/2 and x+w <= width/2: #80000
                                 if(are > la):
                                     lx, ly, lw, lh, la = x, y, w, h, are
                                 xyxy_yellow = [x, y, x+w, y+h]
-                                annotator.box_label(xyxy_yellow, "Yellow Area", color=(0, 255, 255))
+                                msg_d = "Yellow Area"+str(are)
+                                annotator.box_label(xyxy_yellow, msg_d, color=(0, 255, 255))
                                 # cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
                                 print(are, w, h)
                                 print(xyxy_yellow)
                         
                         if la != 0:           
-                            lxyxy_yellow = [lx, ly, lx+lw, ly+lh]                   
-                            annotator.box_label(lxyxy_yellow, "Largest Yellow Area", color=(0, 200, 200))
+                            lxyxy_yellow = [lx, ly, lx+lw, ly+lh] 
+                            msg_d = "Largest Yellow Area"+str(are)                  
+                            annotator.box_label(lxyxy_yellow, msg_d, color=(0, 100, 100))
 
-                            scale_factor = 30                          
+                            scale_factor = 2                         
 
                             linear_x_yellow = ((lx+lw/2) - int(width/4))/scale_factor #nominal 40
-                            linear_y_yellow = ((ly+lh/2) - height)/scale_factor
+                            linear_y_yellow = (ly - height)/scale_factor
 
-                            lxyxy_yellow = [lx+(lw/2), ly+(lh/2), lx+(lw/2), ly+(lh/2)]                   
+                            if linear_y_yellow < height / 2:
+                                scale_factor = 1
+
+                            lxyxy_yellow = [lx+(lw/2), ly, lx+(lw/2), ly]                   
                             annotator.box_label(lxyxy_yellow, "Target", color=(200, 200, 200))
                             
                             matrix_4x3 = np.array([[15.75, 0, -5.66909078166105],
@@ -475,7 +490,8 @@ def run(
                                                 [-15.75, 0, -5.66909078166105],
                                                 [0, -15.75,-5.66909078166105]]) 
                             
-                            az = math.atan2(-linear_y_yellow, -linear_x_yellow)
+                            # az = math.atan2(-linear_y_yellow, -linear_x_yellow)
+                            az = 0
                             # Move the tensors to CPU and convert to NumPy arrays 
                             linear_x_cpu = linear_x_yellow
                             linear_y_cpu = linear_y_yellow   
@@ -496,14 +512,15 @@ def run(
                             fr /=1
                             fl /=1
                             br /=1
-                            bl /=1                        
+                            bl /=1         
+                            near_far = -2 # -2 : Yellow | -1 : No Detection | -3 : Near | -4 : Far               
 
                             # Convert to bytes
                             data = (str(int(fr)) + '|' + 
                                     str(int(fl)) + '|' +
                                     str(int(bl)) + '|' +
                                     str(int(br)) + '|' +
-                                    str(int(-1))) + "#"
+                                    str(int(near_far))) + "#"
                                 
                             # Send data
                             # time.sleep(0.05)
@@ -513,14 +530,16 @@ def run(
                             fr = -bot_default_turn_speed
                             fl = bot_default_turn_speed
                             bl = -bot_default_turn_speed
-                            br = bot_default_turn_speed                    
+                            br = bot_default_turn_speed  
+
+                            near_far = -1 # -2 : Yellow | -1 : No Detection | -3 : Near | -4 : Far                   
 
                             # Convert to bytes
                             data = (str(int(fr)) + '|' + 
                                     str(int(fl)) + '|' +
                                     str(int(bl)) + '|' +
                                     str(int(br)) + '|' +
-                                    str(int(-1))) + "#"
+                                    str(int(near_far))) + "#"
                                 
                             # Send data
                             # time.sleep(0.05)
@@ -565,25 +584,34 @@ def run(
                     for contour in contours:
                         x, y, w, h = cv2.boundingRect(contour)
                         are = w*h
-                        if are > 60000 and x <= width/2 and x+w <= width/2: #80000
+                        xyxy_yellow = [x, y, x+w, y+h]
+                        msg_d = "Area Unchecked"+str(are)
+                        annotator.box_label(xyxy_yellow, msg_d, color=(0,0,0))
+                            
+                        if are > 40000 and x <= width/2 and x+w <= width/2: #80000
                             if(are > la):
                                 lx, ly, lw, lh, la = x, y, w, h, are
                             xyxy_yellow = [x, y, x+w, y+h]
-                            annotator.box_label(xyxy_yellow, "Yellow Area", color=(0, 255, 255))
+                            msg_d = "Yellow Area"+str(are)
+                            annotator.box_label(xyxy_yellow, msg_d, color=(0, 255, 255))
                             # cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
                             print(are, w, h)
                             print(xyxy_yellow)
                     
                     if la != 0:           
-                        lxyxy_yellow = [lx, ly, lx+lw, ly+lh]                   
-                        annotator.box_label(lxyxy_yellow, "Largest Yellow Area", color=(0, 200, 200))
+                        lxyxy_yellow = [lx, ly, lx+lw, ly+lh] 
+                        msg_d = "Largest Yellow Area"+str(are)                  
+                        annotator.box_label(lxyxy_yellow, msg_d, color=(0, 100, 100))
 
-                        scale_factor =30                          
+                        scale_factor = 2                       
 
                         linear_x_yellow = ((lx+lw/2) - int(width/4))/scale_factor #nominal 40
-                        linear_y_yellow = ((ly+lh/2) - height)/scale_factor
+                        linear_y_yellow = (ly - height)/scale_factor
 
-                        lxyxy_yellow = [lx+(lw/2), ly+(lh/2), lx+(lw/2), ly+(lh/2)]                   
+                        if linear_y_yellow < height / 2:
+                            scale_factor = 1
+
+                        lxyxy_yellow = [lx+(lw/2), ly, lx+(lw/2), ly]                   
                         annotator.box_label(lxyxy_yellow, "Target", color=(200, 200, 200))
                         
                         matrix_4x3 = np.array([[15.75, 0, -5.66909078166105],
@@ -591,7 +619,8 @@ def run(
                                             [-15.75, 0, -5.66909078166105],
                                             [0, -15.75,-5.66909078166105]]) 
                         
-                        az = math.atan2(-linear_y_yellow, -linear_x_yellow)
+                        # az = math.atan2(-linear_y_yellow, -linear_x_yellow)
+                        az = 0
                         # Move the tensors to CPU and convert to NumPy arrays 
                         linear_x_cpu = linear_x_yellow
                         linear_y_cpu = linear_y_yellow   
@@ -612,14 +641,15 @@ def run(
                         fr /=1
                         fl /=1
                         br /=1
-                        bl /=1                        
+                        bl /=1         
+                        near_far = -2 # -2 : Yellow | -1 : No Detection | -3 : Near | -4 : Far               
 
                         # Convert to bytes
                         data = (str(int(fr)) + '|' + 
                                 str(int(fl)) + '|' +
                                 str(int(bl)) + '|' +
                                 str(int(br)) + '|' +
-                                str(int(-1))) + "#"
+                                str(int(near_far))) + "#"
                             
                         # Send data
                         # time.sleep(0.05)
@@ -629,22 +659,24 @@ def run(
                         fr = -bot_default_turn_speed
                         fl = bot_default_turn_speed
                         bl = -bot_default_turn_speed
-                        br = bot_default_turn_speed                    
+                        br = bot_default_turn_speed  
+
+                        near_far = -1 # -2 : Yellow | -1 : No Detection | -3 : Near | -4 : Far                   
 
                         # Convert to bytes
                         data = (str(int(fr)) + '|' + 
                                 str(int(fl)) + '|' +
                                 str(int(bl)) + '|' +
                                 str(int(br)) + '|' +
-                                str(int(-1))) + "#"
+                                str(int(near_far))) + "#"
                             
                         # Send data
                         # time.sleep(0.05)
                         ser.write(data.encode())  
-                        LOGGER.info(f"Sent 11: {data}")        
+                        LOGGER.info(f"Sent 7: {data}")        
 
                     return frame  
-                    
+                        
                 frame = im0s[i].copy()
                 detect_yellow(frame)
 
@@ -667,14 +699,16 @@ def run(
             fr = -bot_default_turn_speed
             fl = bot_default_turn_speed
             bl = -bot_default_turn_speed
-            br = bot_default_turn_speed                    
+            br = bot_default_turn_speed 
+
+            near_far = -1 # -2 : Yellow | -1 : No Detection | -3 : Near | -4 : Far                   
 
             # Convert to bytes
             data = (str(int(fr)) + '|' + 
                     str(int(fl)) + '|' +
                     str(int(bl)) + '|' +
                     str(int(br)) + '|' +
-                    str(int(-1))) + "#"
+                    str(int(near_far))) + "#"
                 
             # Send data
             # time.sleep(0.05)
@@ -696,25 +730,34 @@ def run(
                     for contour in contours:
                         x, y, w, h = cv2.boundingRect(contour)
                         are = w*h
-                        if are > 60000 and x <= width/2 and x+w <= width/2: #80000
+                        xyxy_yellow = [x, y, x+w, y+h]
+                        msg_d = "Area Unchecked"+str(are)
+                        annotator.box_label(xyxy_yellow, msg_d, color=(0,0,0))
+                            
+                        if are > 40000 and x <= width/2 and x+w <= width/2: #80000
                             if(are > la):
                                 lx, ly, lw, lh, la = x, y, w, h, are
                             xyxy_yellow = [x, y, x+w, y+h]
-                            annotator.box_label(xyxy_yellow, "Yellow Area", color=(0, 255, 255))
+                            msg_d = "Yellow Area"+str(are)
+                            annotator.box_label(xyxy_yellow, msg_d, color=(0, 255, 255))
                             # cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
                             print(are, w, h)
                             print(xyxy_yellow)
                     
                     if la != 0:           
-                        lxyxy_yellow = [lx, ly, lx+lw, ly+lh]                   
-                        annotator.box_label(lxyxy_yellow, "Largest Yellow Area", color=(0, 200, 200))
-
-                        scale_factor = 30                          
+                        lxyxy_yellow = [lx, ly, lx+lw, ly+lh] 
+                        msg_d = "Largest Yellow Area"+str(are)                  
+                        annotator.box_label(lxyxy_yellow, msg_d, color=(0, 100, 100))
+                        
+                        scale_factor = 2                    
 
                         linear_x_yellow = ((lx+lw/2) - int(width/4))/scale_factor #nominal 40
-                        linear_y_yellow = ((ly+lh/2) - height)/scale_factor
+                        linear_y_yellow = (ly - height)/scale_factor
 
-                        lxyxy_yellow = [lx+(lw/2), ly+(lh/2), lx+(lw/2), ly+(lh/2)]                   
+                        if linear_y_yellow < height / 2:
+                            scale_factor = 1
+
+                        lxyxy_yellow = [lx+(lw/2), ly, lx+(lw/2), ly]                   
                         annotator.box_label(lxyxy_yellow, "Target", color=(200, 200, 200))
                         
                         matrix_4x3 = np.array([[15.75, 0, -5.66909078166105],
@@ -722,7 +765,8 @@ def run(
                                             [-15.75, 0, -5.66909078166105],
                                             [0, -15.75,-5.66909078166105]]) 
                         
-                        az = math.atan2(-linear_y_yellow, -linear_x_yellow)
+                        # az = math.atan2(-linear_y_yellow, -linear_x_yellow)
+                        az = 0
                         # Move the tensors to CPU and convert to NumPy arrays 
                         linear_x_cpu = linear_x_yellow
                         linear_y_cpu = linear_y_yellow   
@@ -743,39 +787,42 @@ def run(
                         fr /=1
                         fl /=1
                         br /=1
-                        bl /=1                        
+                        bl /=1         
+                        near_far = -2 # -2 : Yellow | -1 : No Detection | -3 : Near | -4 : Far               
 
                         # Convert to bytes
                         data = (str(int(fr)) + '|' + 
                                 str(int(fl)) + '|' +
                                 str(int(bl)) + '|' +
                                 str(int(br)) + '|' +
-                                str(int(-1))) + "#"
+                                str(int(near_far))) + "#"
                             
                         # Send data
                         # time.sleep(0.05)
                         ser.write(data.encode())  
-                        LOGGER.info(f"Sent 9: {data}")
+                        LOGGER.info(f"Sent 6: {data}")
                     else:
                         fr = -bot_default_turn_speed
                         fl = bot_default_turn_speed
                         bl = -bot_default_turn_speed
-                        br = bot_default_turn_speed                    
+                        br = bot_default_turn_speed  
+
+                        near_far = -1 # -2 : Yellow | -1 : No Detection | -3 : Near | -4 : Far                   
 
                         # Convert to bytes
                         data = (str(int(fr)) + '|' + 
                                 str(int(fl)) + '|' +
                                 str(int(bl)) + '|' +
                                 str(int(br)) + '|' +
-                                str(int(-1))) + "#"
+                                str(int(near_far))) + "#"
                             
                         # Send data
                         # time.sleep(0.05)
                         ser.write(data.encode())  
-                        LOGGER.info(f"Sent 10: {data}")
+                        LOGGER.info(f"Sent 7: {data}")        
 
                     return frame  
-                    
+                        
                 frame = im0s[i].copy()
                 detect_yellow(frame)
 
