@@ -34,8 +34,9 @@ import matplotlib.pyplot as plt
 time.sleep(0.1)
 
 bot_default_turn_speed = 35
+bot_default_turn_speed_ball = 15
 
-ball_silo = 1 # 0 : ball | 1 : silo
+ball_silo = 2 # 0 : ball | 1 : silo
 cam_source = 2
 serial_port = '/dev/ttyACM0'
 baud_rate = 115200 
@@ -96,6 +97,7 @@ def run(
     dnn=False,  # use OpenCV DNN for ONNX inference
     vid_stride=1,  # video frame-rate stride
 ):
+    global ball_silo
     source = str(source)  
     webcam = source.isnumeric() or source.endswith(".streams") 
 
@@ -146,17 +148,17 @@ def run(
         with dt[2]:
             pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det) 
 
-        # if ser.in_waiting > 0: 
-        #     data_from_pico = ser.readline().strip().decode()
-        #     print(f"{data_from_pico}") 
-        #     if int(data_from_pico) == 6:
-        #         ball_silo = 1
-        #         print("Received 6 | Search Silo")
-        #     elif int(data_from_pico) == 1:
-        #         ball_silo = 0
-        #         print("Received 1 | Search Ball")
-        # else:
-        #     print("..")
+        if ser.in_waiting > 0: 
+            data_from_pico = ser.readline().strip().decode()
+            print(f"Received from Pico: {data_from_pico}") 
+            if int(data_from_pico) == 7:
+                ball_silo = 1
+                print("Received 6 | Search Silo")
+            elif int(data_from_pico) == 1:
+                ball_silo = 0
+                print("Received 1 | Search Ball")
+        else:
+            print("..")
 
         # Process predictions 
         for i, det in enumerate(pred):  # per image
@@ -219,7 +221,7 @@ def run(
                             c = int(cls)  # integer class
                             label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
                             annotator.box_label(xyxy, label, color=colors(c, True))
-                        if (c == 0 or c == 2) and ball_silo == 0:
+                        if (c == 0 or c == 2 or c == 1) and ball_silo == 0:
                             # Define the original range
                             in_width_min = 0
                             in_width_max = width / 2
@@ -241,10 +243,10 @@ def run(
                             if(h_dist < nearest):
                                 is_inside = False  
                                 offset = 15   
-                                if c == 2:  
+                                if c == 2 or c == 1:  
                                     counter_in = 0
                                     for *xyxy_in, conf_in, cls_in in reversed(short_det):
-                                        if counter != counter_in and cls_in != 2 and not is_inside and xyxy_in[0] < width/2 and xyxy_in[2] < width/2: 
+                                        if counter != counter_in and (cls_in != 2 and cls_in != 1) and not is_inside and xyxy_in[0] < width/2 and xyxy_in[2] < width/2: 
                                             vertices_rect_in = [
                                                 (xyxy_in[0], xyxy_in[1]),
                                                 (xyxy_in[0], xyxy_in[3]),
@@ -380,7 +382,7 @@ def run(
                     box_width = final_bottom_right_x - final_top_left_x
                     box_height = final_bottom_right_y - final_top_left_y 
                     print(box_width, box_height)
-                    scale_factor = 10   
+                    scale_factor = 1   
 
                     if box_height > 90 or box_width>45: 
                         scale_factor = 80                       
@@ -415,7 +417,7 @@ def run(
                     bl = result_matrix[2]
                     br = result_matrix[3] 
 
-                    if abs(silo_center) < 5:
+                    if abs(silo_center) < 10:
                         fr = 0
                         bl = 0
                         near_far = -5
@@ -556,10 +558,10 @@ def run(
                     detect_yellow(frame)
                       
                 elif ball_silo == 0:
-                    fr = -bot_default_turn_speed
-                    fl = bot_default_turn_speed
-                    bl = -bot_default_turn_speed
-                    br = bot_default_turn_speed                   
+                    fr = -bot_default_turn_speed_ball
+                    fl = bot_default_turn_speed_ball
+                    bl = -bot_default_turn_speed_ball
+                    br = bot_default_turn_speed_ball                   
 
                     # Convert to bytes
                     data = (str(int(fr)) + '|' + 
@@ -700,10 +702,10 @@ def run(
         if len(det):
             pass              
         elif ball_silo == 0:
-            fr = -bot_default_turn_speed
-            fl = bot_default_turn_speed
-            bl = -bot_default_turn_speed
-            br = bot_default_turn_speed 
+            fr = -bot_default_turn_speed_ball
+            fl = bot_default_turn_speed_ball
+            bl = -bot_default_turn_speed_ball
+            br = bot_default_turn_speed_ball 
 
             near_far = -1 # -2 : Yellow | -1 : No Detection | -3 : Near | -4 : Far                   
 
