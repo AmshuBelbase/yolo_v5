@@ -4,12 +4,11 @@ def draw_center_line(frame):
     # Get frame dimensions
     height, width, _ = frame.shape
     
-    # Calculate center point
-    center_x = (width // 4)+20
+    # Calculate center point 
     
     # Draw a vertical line at the center
-    cv2.line(frame, (center_x, 0), (center_x, height), (0, 255, 0), thickness=2)
-    
+    cv2.line(frame, (230, 0), (220, height), (0, 255, 0), thickness=2)
+    cv2.line(frame, (0, 230), (width, 230), (0, 255, 0), thickness=2)
     return frame
 
 def main():

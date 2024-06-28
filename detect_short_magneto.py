@@ -268,11 +268,13 @@ def run(
                                     final_bottom_right_y = xyxy[3]
                                     final_xyxy = (final_top_left_x - offset, final_top_left_y - offset, final_bottom_right_x + offset, final_bottom_right_y + offset)
                         elif c != 0 and c != 1 and c!= 2 and ball_silo == 1:
-                            defence_mode = 1 # 1 : defence | 0 : attack 
+                            defence_mode = 1 # 1 : defence | 0 : attack | 2 : opponent weak
                             if defence_mode == 1:
                                 arr_prio = [30, 30, 30, 3, 4, 5, 2, 1, 1, 1, 30,30,30,30,30,30,30,30]
                             elif defence_mode == 0:
                                 arr_prio = [30, 30, 30, 3, 4, 5, 1, 1, 1, 2, 30,30,30,30,30,30,30,30]
+                            elif defence_mode == 2:
+                                arr_prio = [30, 30, 30, 4, 3, 5, 1, 1, 1, 2, 30,30,30,30,30,30,30,30]
 
                             if arr_prio[c] != 30 and (arr_prio[c] < arr_prio[prio_silo] or (arr_prio[c] == arr_prio[prio_silo] and abs(xyxy[0] - int(width/4)) < abs(final_top_left_x - int(width/4)))):     
                                 prio_silo = c
