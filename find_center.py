@@ -7,8 +7,10 @@ def draw_center_line(frame):
     # Calculate center point 
     
     # Draw a vertical line at the center
-    cv2.line(frame, (230, 0), (220, height), (0, 255, 0), thickness=2)
-    cv2.line(frame, (0, 230), (width, 230), (0, 255, 0), thickness=2)
+    # cv2.line(frame, (230, 0), (220, height), (0, 255, 0), thickness=2)
+    cv2.line(frame, (0, 170), (width, 170), (0, 255, 0), thickness=2)
+    cv2.line(frame, (0, 200), (width, 200), (200, 255, 255), thickness=2)
+    cv2.line(frame, (0, 230), (width, 230), (255, 0, 255), thickness=2)
     return frame
 
 def main():

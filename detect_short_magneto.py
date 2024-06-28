@@ -262,6 +262,8 @@ def run(
                                 if is_inside or c!=2:
                                     nearest = h_dist 
                                     nearest_c = c
+                                    if nearest_c != 2:
+                                        nearest_c = top_left_y
                                     final_top_left_x = xyxy[0]
                                     final_top_left_y = xyxy[1]
                                     final_bottom_right_x = xyxy[2]
