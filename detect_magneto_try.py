@@ -31,16 +31,16 @@ import torch
 import serial 
 import matplotlib.pyplot as plt  
 
-time.sleep(5)
+time.sleep(0.01)
 
 bot_default_turn_speed = 27
-bot_default_turn_speed_ball = 20
+bot_default_turn_speed_ball = 15
 
-ball_silo = 2 # 0 : ball | 1 : silo
+ball_silo = 0 # 0 : ball | 1 : silo
 cam_source = 2
 serial_port = '/dev/ttyACM0'
 baud_rate = 115200 
-ser = serial.Serial(serial_port, baud_rate, timeout=1)
+# ser = serial.Serial(serial_port, baud_rate, timeout=1)
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -148,17 +148,17 @@ def run(
         with dt[2]:
             pred = non_max_suppression(pred, conf_thres, iou_thres, classes, agnostic_nms, max_det=max_det) 
 
-        if ser.in_waiting > 0: 
-            data_from_pico = ser.readline().strip().decode()
-            print(f"Received from Pico: {data_from_pico}") 
-            if int(data_from_pico) == 7:
-                ball_silo = 1
-                print("Received 7 | Search Silo")
-            elif int(data_from_pico) == 1:
-                ball_silo = 0
-                print("Received 1 | Search Ball")
-        else:
-            print("..")
+        # if ser.in_waiting > 0: 
+        #     data_from_pico = ser.readline().strip().decode()
+        #     print(f"Received from Pico: {data_from_pico}") 
+        #     if int(data_from_pico) == 7:
+        #         ball_silo = 1
+        #         print("Received 7 | Search Silo")
+        #     elif int(data_from_pico) == 1:
+        #         ball_silo = 0
+        #         print("Received 1 | Search Ball")
+        # else:
+        #     print("..")
 
         # Process predictions 
         for i, det in enumerate(pred):  # per image
@@ -240,6 +240,40 @@ def run(
 
                             h_dist = (float(abs(mapped_value)) ** 2 + float(actual_top_left_y ** 2)) ** 0.5
 
+                            # def detect_yellow(frame): 
+                            #     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+                                
+                            #     # lower_yellow = np.array([20, 100, 100])
+                            #     # upper_yellow = np.array([30, 255, 255])
+                                
+                            #     lower_blue = np.array([100, 50, 50])
+                            #     upper_blue = np.array([130, 255, 255])
+
+                            #     mask = cv2.inRange(hsv, lower_blue, upper_blue)
+                                
+                            #     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                            #     width =  frame.shape[1] 
+                            #     height = frame.shape[0]  
+                            #     for contour in contours:
+                            #         x, y, w, h = cv2.boundingRect(contour)
+                            #         are = w*h
+                            #         xyxy_yellow = [x, y, x+w, y+h]
+                            #         # msg_d = "Area Unchecked"+str(are)
+                            #         # annotator.box_label(xyxy_yellow, msg_d, color=(0,0,0))
+                                        
+                            #         if are > 10000 and x <= width/1 and x+w <= width/1: #80000 
+                            #             xyxy_yellow = [x, y, x+w, y+h]
+                            #             msg_d = "Yellow Area"+str(are)
+                            #             annotator.box_label(xyxy_yellow, msg_d, color=(0, 255, 255))
+                            #             # cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 255), 2)
+                            #             print(are, w, h)
+                            #             print(xyxy_yellow)                                     
+
+                            #     return frame  
+                                
+                            # frame = im0s[i].copy()
+                            # detect_yellow(frame)
+
                             if(h_dist < nearest):
                                 is_inside = False  
                                 offset = 15   
@@ -311,7 +345,7 @@ def run(
                                                 rect2 = (ball_xyxy[0], ball_xyxy[1], ball_xyxy[2]-ball_xyxy[0], ball_xyxy[3]-ball_xyxy[1])  # (x, y, width, height)
                                                 area_rect2 = rect2[2]*rect2[3]
                                                 int_area = intersection_area(rect1, rect2)
-                                                if int_area > ((80*area_rect2)/100):
+                                                if int_area > ((60*area_rect2)/100):
                                                     inside_blue_f = True
                                                     print("Inside")
                                                 else:
@@ -332,17 +366,6 @@ def run(
                                         final_bottom_right_x = xyxy[2]
                                         final_bottom_right_y = xyxy[3]
                                         final_xyxy = (final_top_left_x - offset, final_top_left_y - offset, final_bottom_right_x + offset, final_bottom_right_y + offset)
-                                
-                                # if is_inside or c!=2:
-                                #     nearest = h_dist 
-                                #     nearest_c = c
-                                #     if nearest_c != 2:
-                                #         nearest_c = top_left_y
-                                #     final_top_left_x = xyxy[0]
-                                #     final_top_left_y = xyxy[1]
-                                #     final_bottom_right_x = xyxy[2]
-                                #     final_bottom_right_y = xyxy[3]
-                                #     final_xyxy = (final_top_left_x - offset, final_top_left_y - offset, final_bottom_right_x + offset, final_bottom_right_y + offset)
 
                         elif c != 0 and c != 1 and c!= 2 and ball_silo == 1:
                             defence_mode = 1 # 1 : defence | 0 : attack | 2 : opponent weak
@@ -353,7 +376,7 @@ def run(
                             elif defence_mode == 2:
                                 arr_prio = [30, 30, 30, 4, 3, 5, 1, 1, 1, 2, 30,30,30,30,30,30,30,30]
 
-                            if arr_prio[c] != 30 and (((xyxy[3] - xyxy[1]) > 180 or (xyxy[2] - xyxy[0])>90) or (arr_prio[c] < arr_prio[prio_silo] or (arr_prio[c] == arr_prio[prio_silo] and abs(xyxy[0] - int(width/4)) < abs(final_top_left_x - int(width/4))))):     
+                            if arr_prio[c] != 30 and (arr_prio[c] < arr_prio[prio_silo] or (arr_prio[c] == arr_prio[prio_silo] and abs(xyxy[0] - int(width/4)) < abs(final_top_left_x - int(width/4)))):     
                                 prio_silo = c
                                 final_top_left_x = xyxy[0]
                                 final_top_left_y = xyxy[1]
@@ -364,7 +387,7 @@ def run(
 
                             print("searching Silos")
 
-                print("Nearest:", nearest)
+                print("Nearest:", nearest, " Nearest C:", nearest_c)
                 if view_img:  # Add bbox to image
                     c = int(cls)  # integer class
                     label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
@@ -452,7 +475,7 @@ def run(
                         
                     # Send data
                     # time.sleep(0.05)
-                    ser.write(data.encode())  
+                    # ser.write(data.encode())  
                     LOGGER.info(f"Sent 1: {data}")
                     # LOGGER.info(f"Front Right: {result_matrix[0]}, Front Left: {result_matrix[1]}, Back Left: {result_matrix[2]}, Back Right: {result_matrix[3]}")
 
@@ -521,7 +544,7 @@ def run(
                         
                     # Send data
                     # time.sleep(0.05)
-                    ser.write(data.encode())  
+                    # ser.write(data.encode())  
                     LOGGER.info(f"Sent 2: {data}") 
                 
                 elif ball_silo == 1:
@@ -541,7 +564,7 @@ def run(
                         
                     # Send data
                     # time.sleep(0.05)
-                    ser.write(data.encode())  
+                    # ser.write(data.encode())  
                     LOGGER.info(f"Sent 6: {data}")
                       
                 elif ball_silo == 0:
@@ -559,7 +582,7 @@ def run(
                         
                     # Send data
                     # time.sleep(0.05)
-                    ser.write(data.encode())  
+                    # ser.write(data.encode())  
                     LOGGER.info(f"Sent 5: {data}")
             
             elif ball_silo == 1:
@@ -579,7 +602,7 @@ def run(
                     
                 # Send data
                 # time.sleep(0.05)
-                ser.write(data.encode())  
+                # ser.write(data.encode())  
                 LOGGER.info(f"Sent 7: {data}")
 
 
@@ -614,7 +637,7 @@ def run(
                 
             # Send data
             # time.sleep(0.05)
-            ser.write(data.encode())  
+            # ser.write(data.encode())  
             LOGGER.info(f"Sent 8: {data}")
         elif ball_silo == 1:
             fr = +0
@@ -633,7 +656,7 @@ def run(
                 
             # Send data
             # time.sleep(0.05)
-            ser.write(data.encode())  
+            # ser.write(data.encode())  
             LOGGER.info(f"Sent 9: {data}")
 
         LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
