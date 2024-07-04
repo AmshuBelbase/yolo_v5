@@ -464,7 +464,7 @@ def run(
                     o_max = 20
                     scale_factor = 100
                     if(dist_ball > 310 or dist_ball < 40):
-                        scale_factor = 120
+                        scale_factor = 140
                     else:
                         scale_factor = (dist_ball-i_min) * (o_max-o_min) / (i_max - i_min) + o_min
 
@@ -564,7 +564,7 @@ def run(
                     bl = result_matrix[2]
                     br = result_matrix[3] 
                     
-                    if abs(silo_center) <= 3:
+                    if -1 <= silo_center <= 3:
                         print(" --------------- Aligned ---------------------")
                         fr = 0
                         bl = 0
