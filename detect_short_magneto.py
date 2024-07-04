@@ -32,11 +32,13 @@ import serial
 import matplotlib.pyplot as plt  
 
 time.sleep(5)
+gint_area = 0
 
 bot_default_turn_speed = 27
-bot_default_turn_speed_ball = 20
+bot_default_turn_speed_ball = 30
 
 ball_silo = 2 # 0 : ball | 1 : silo
+almost_aligned = False
 cam_source = 2
 serial_port = '/dev/ttyACM0'
 baud_rate = 115200 
@@ -97,7 +99,7 @@ def run(
     dnn=False,  # use OpenCV DNN for ONNX inference
     vid_stride=1,  # video frame-rate stride
 ):
-    global ball_silo
+    global ball_silo, gint_area
     source = str(source)  
     webcam = source.isnumeric() or source.endswith(".streams") 
 
@@ -152,7 +154,8 @@ def run(
             data_from_pico = ser.readline().strip().decode()
             print(f"Received from Pico: {data_from_pico}") 
             if int(data_from_pico) == 7:
-                ball_silo = 1
+                ball_silo = 1 
+                gint_area = 0
                 print("Received 7 | Search Silo")
             elif int(data_from_pico) == 1:
                 ball_silo = 0
@@ -187,8 +190,7 @@ def run(
                     n = (det[:, 5] == c).sum()  # detections per class
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
 
-                # Write results
-                flag=0
+                # Write results 
                 short_det = det
                 
                 nearest_c = -1
@@ -201,7 +203,7 @@ def run(
                 final_xyxy = (final_top_left_x, final_top_left_y, final_bottom_right_x, final_bottom_right_y)
                 counter = 0 
 
-                prio_silo = 0
+                prio_silo = 0 
 
                 for *xyxy, conf, cls in reversed(short_det):
                     counter +=1
@@ -221,7 +223,7 @@ def run(
                             c = int(cls)  # integer class
                             label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
                             annotator.box_label(xyxy, label, color=colors(c, True))
-                        if (c == 0 or c == 2) and ball_silo == 0:
+                        if (c == 0 or c == 2 or c == 1) and ball_silo == 0:
                             # Define the original range
                             in_width_min = 0
                             in_width_max = width / 2
@@ -243,7 +245,7 @@ def run(
                             if(h_dist < nearest):
                                 is_inside = False  
                                 offset = 15   
-                                if c == 2:  
+                                if c == 2 or c == 1:  
                                     counter_in = 0
                                     for *xyxy_in, conf_in, cls_in in reversed(short_det):
                                         if counter != counter_in and (cls_in != 2 and cls_in != 1) and not is_inside and xyxy_in[0] < width/2 and xyxy_in[2] < width/2: 
@@ -259,7 +261,7 @@ def run(
                                                 if (xyxy[0] - offset) <= x <= (xyxy[2] + offset) and (xyxy[1] - offset) <= y <= (xyxy[3]+ offset):
                                                     is_inside = True 
                                         counter_in += 1
-                                if is_inside or c!=2: 
+                                if is_inside or (c!=2 and c!=1): 
                                     inside_blue = False
                                     def intersection_area(rect1, rect2):
                                         # rect1 and rect2 are tuples in the format (x, y, width, height)
@@ -311,7 +313,7 @@ def run(
                                                 rect2 = (ball_xyxy[0], ball_xyxy[1], ball_xyxy[2]-ball_xyxy[0], ball_xyxy[3]-ball_xyxy[1])  # (x, y, width, height)
                                                 area_rect2 = rect2[2]*rect2[3]
                                                 int_area = intersection_area(rect1, rect2)
-                                                if int_area > ((80*area_rect2)/100):
+                                                if int_area > ((90*area_rect2)/100):
                                                     inside_blue_f = True
                                                     print("Inside")
                                                 else:
@@ -324,9 +326,9 @@ def run(
                                     inside_blue = detect_blue(frame, xyxy, inside_blue)
                                     if not inside_blue:
                                         nearest = h_dist 
-                                        nearest_c = c
-                                        if nearest_c != 2:
-                                            nearest_c = top_left_y
+                                        nearest_c = (top_left_y*10)+c
+                                        # if nearest_c != 2:
+                                        #     nearest_c = top_left_y
                                         final_top_left_x = xyxy[0]
                                         final_top_left_y = xyxy[1]
                                         final_bottom_right_x = xyxy[2]
@@ -351,17 +353,84 @@ def run(
                             elif defence_mode == 0:
                                 arr_prio = [30, 30, 30, 3, 4, 5, 1, 1, 1, 2, 30,30,30,30,30,30,30,30]
                             elif defence_mode == 2:
-                                arr_prio = [30, 30, 30, 4, 3, 5, 1, 1, 1, 2, 30,30,30,30,30,30,30,30]
+                                arr_prio = [30, 30, 30, 4, 3, 5, 1, 1, 1, 2, 30,30,30,30,30,30,30,30] 
 
-                            if arr_prio[c] != 30 and (((xyxy[3] - xyxy[1]) > 180 or (xyxy[2] - xyxy[0])>90) or (arr_prio[c] < arr_prio[prio_silo] or (arr_prio[c] == arr_prio[prio_silo] and abs(xyxy[0] - int(width/4)) < abs(final_top_left_x - int(width/4))))):     
+                            # if arr_prio[c] != 30 and (arr_prio[c] < arr_prio[prio_silo] or (arr_prio[c] == arr_prio[prio_silo] and abs(xyxy[0] - int(width/4)) < abs(final_top_left_x - int(width/4)))):     
+                            #     prio_silo = c
+                            #     final_top_left_x = xyxy[0]
+                            #     final_top_left_y = xyxy[1]
+                            #     final_bottom_right_x = xyxy[2]
+                            #     final_bottom_right_y = xyxy[3]
+                            #     final_xyxy = (final_top_left_x, final_top_left_y, final_bottom_right_x, final_bottom_right_y)  
+                            
+                            def intersection_area(rect1, rect2):
+                                # rect1 and rect2 are tuples in the format (x, y, width, height)
+                                x1, y1, w1, h1 = rect1
+                                x2, y2, w2, h2 = rect2
+                                
+                                # Calculate the coordinates of the intersection rectangle
+                                left_x = max(x1, x2)
+                                right_x = min(x1 + w1, x2 + w2)
+                                bottom_y = max(y1, y2)
+                                top_y = min(y1 + h1, y2 + h2)
+                                
+                                # Check if there is an intersection (width and height are positive)
+                                if left_x < right_x and bottom_y < top_y:
+                                    intersection_width = right_x - left_x
+                                    intersection_height = top_y - bottom_y
+                                    intersection_area = intersection_width * intersection_height
+                                else:
+                                    intersection_area = 0
+                                
+                                return intersection_area
+                            
+
+                            margin = 27
+
+                            silo_center =  xyxy[0] + ((xyxy[2]-xyxy[0])/2) - (int(width/4)+margin) # 73
+
+                            bot_center = (int(width/4)+margin-5, 0, int(width/4)+margin-5, height)
+                            annotator.box_label(bot_center, "Center Line L", color=colors(c, True))
+
+                            bot_center = (int(width/4)+margin+5, 0, int(width/4)+margin+5, height)
+                            annotator.box_label(bot_center, "Center Line R", color=colors(c, True))
+
+                            rect2 = (xyxy[0]+((xyxy[2]-xyxy[0])/2), xyxy[1], xyxy[2]-((xyxy[2]-xyxy[0])/2), xyxy[3])
+                            annotator.box_label(rect2, str(xyxy[0] + ((xyxy[2]-xyxy[0])/2)- (int(width/4)+margin)), color=(0, 100, 0))
+                            
+                            offset = int((width // 2)/3)
+                            rect1 = (offset, 0, offset, height)  # (x, y, width, height)
+                            rect2 = (xyxy[0], xyxy[1], xyxy[2]-xyxy[0], xyxy[3]-xyxy[1])  # (x, y, width, height) 
+                            int_area = intersection_area(rect1, rect2)
+                            # print("Intersection Area: ", int_area, " Greatest Intersection Area: ", gint_area)
+                            rect1 = (offset, 0, offset+offset, height)
+                            annotator.box_label(rect1, "SILO RANGE", color=(0, 0, 0)) 
+
+                            if abs(silo_center) < 60: 
+                                print(" !!!!!!!!!!!!!!!!!!!!!!! ----------- ALMOST ALIGNED ----------- !!!!!!!!!!!!!!!!!!!!!!! ")
+                                gint_area = 0 
+
+                            if arr_prio[c] != 30 and int_area > 0 and int_area > gint_area and ((xyxy[3] - xyxy[1]) > 180 or (xyxy[2] - xyxy[0])>90):
+                                rect2 = (xyxy[0], xyxy[1], xyxy[2], xyxy[3])
+                                annotator.box_label(rect2, "SILO", color=(255, 255, 255))
+                                gint_area = int_area
                                 prio_silo = c
                                 final_top_left_x = xyxy[0]
                                 final_top_left_y = xyxy[1]
                                 final_bottom_right_x = xyxy[2]
                                 final_bottom_right_y = xyxy[3]
-                                final_xyxy = (final_top_left_x, final_top_left_y, final_bottom_right_x, final_bottom_right_y)  
-                            
-
+                                final_xyxy = (final_top_left_x, final_top_left_y, final_bottom_right_x, final_bottom_right_y)
+                            elif gint_area == 0:
+                                if arr_prio[c] != 30 and (((xyxy[3] - xyxy[1]) > 180 or (xyxy[2] - xyxy[0])>90) or (arr_prio[c] < arr_prio[prio_silo] or (arr_prio[c] == arr_prio[prio_silo] and abs(xyxy[0] - int(width/4)) < abs(final_top_left_x - int(width/4))))):     
+                                    prio_silo = c
+                                    final_top_left_x = xyxy[0]
+                                    final_top_left_y = xyxy[1]
+                                    final_bottom_right_x = xyxy[2]
+                                    final_bottom_right_y = xyxy[3]
+                                    final_xyxy = (final_top_left_x, final_top_left_y, final_bottom_right_x, final_bottom_right_y) 
+                            elif arr_prio[c] != 30:
+                                prio_silo = 16
+                                print("FOllowing Movement")
                             print("searching Silos")
 
                 print("Nearest:", nearest)
@@ -393,9 +462,9 @@ def run(
                     i_max = 310
                     o_min = 50
                     o_max = 20
-                    scale_factor = 80
+                    scale_factor = 100
                     if(dist_ball > 310 or dist_ball < 40):
-                        scale_factor = 100
+                        scale_factor = 120
                     else:
                         scale_factor = (dist_ball-i_min) * (o_max-o_min) / (i_max - i_min) + o_min
 
@@ -457,7 +526,7 @@ def run(
                     # LOGGER.info(f"Front Right: {result_matrix[0]}, Front Left: {result_matrix[1]}, Back Left: {result_matrix[2]}, Back Right: {result_matrix[3]}")
 
                     # flag = 1 
-                elif ball_silo == 1 and prio_silo != 0: 
+                elif ball_silo == 1 and prio_silo != 0 and prio_silo !=16: 
                     box_width = final_bottom_right_x - final_top_left_x
                     box_height = final_bottom_right_y - final_top_left_y 
                     print(box_width, box_height)
@@ -475,10 +544,9 @@ def run(
                                         [0, -15.75,-5.66909078166105]])  
                     
                     near_far = -4 #  -1 : No Detection | -3 : Near | -4 : Far | -5 : Aligned
-                    silo_center =  final_top_left_x + (box_width/2) - 25 - int(width/4)
+                    silo_center =  final_top_left_x + (box_width/2) - (int(width/4)+27)
                     if box_height > 180 or box_width>90:  # 150 75
-                        near_far = -3
-                        silo_center =  final_top_left_x + (box_width/2) - 25 - int(width/4)
+                        near_far = -3 
                         print("Silo Center : ", silo_center) 
                     
                     # az = math.atan2(-linear_y, -linear_x)
@@ -495,8 +563,9 @@ def run(
                     fl = result_matrix[1]
                     bl = result_matrix[2]
                     br = result_matrix[3] 
-
-                    if abs(silo_center) < 5:
+                    
+                    if abs(silo_center) <= 3:
+                        print(" --------------- Aligned ---------------------")
                         fr = 0
                         bl = 0
                         near_far = -5
@@ -524,7 +593,7 @@ def run(
                     ser.write(data.encode())  
                     LOGGER.info(f"Sent 2: {data}") 
                 
-                elif ball_silo == 1:
+                elif ball_silo == 1  and prio_silo !=16:
                     fr = +0
                     fl = 0
                     bl = -0
@@ -545,10 +614,10 @@ def run(
                     LOGGER.info(f"Sent 6: {data}")
                       
                 elif ball_silo == 0:
-                    fr = -bot_default_turn_speed_ball
-                    fl = bot_default_turn_speed_ball
-                    bl = -bot_default_turn_speed_ball
-                    br = bot_default_turn_speed_ball                   
+                    fr = bot_default_turn_speed_ball
+                    fl = -bot_default_turn_speed_ball
+                    bl = bot_default_turn_speed_ball
+                    br = -bot_default_turn_speed_ball                   
 
                     # Convert to bytes
                     data = (str(int(fr)) + '|' + 
@@ -598,10 +667,10 @@ def run(
         if len(det):
             pass              
         elif ball_silo == 0:
-            fr = -bot_default_turn_speed_ball
-            fl = bot_default_turn_speed_ball
-            bl = -bot_default_turn_speed_ball
-            br = bot_default_turn_speed_ball 
+            fr = bot_default_turn_speed_ball
+            fl = -bot_default_turn_speed_ball
+            bl = bot_default_turn_speed_ball
+            br = -bot_default_turn_speed_ball 
 
             near_far = -1 # -1 : No Detection | -3 : Near | -4 : Far                   
 
