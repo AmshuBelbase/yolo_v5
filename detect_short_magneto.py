@@ -33,6 +33,7 @@ import matplotlib.pyplot as plt
 
 time.sleep(5)
 gint_area = 0
+delay_stat = False
 
 bot_default_turn_speed = 27
 bot_default_turn_speed_ball = 30
@@ -316,8 +317,10 @@ def run(
                                                 if int_area > ((90*area_rect2)/100):
                                                     inside_blue_f = True
                                                     print("Inside")
+                                                    delay_stat = True
                                                 else:
                                                     print("Outside")
+                                                    delay_stat = False
                                                 print("Area of intersection:", intersection_area(rect1, rect2))                                         
 
                                         return inside_blue_f  
@@ -468,6 +471,16 @@ def run(
                     else:
                         scale_factor = (dist_ball-i_min) * (o_max-o_min) / (i_max - i_min) + o_min
 
+                    if scale_factor <= 10:
+                        scale_factor *= 5
+                    elif scale_factor <= 20:
+                        scale_factor *= 3
+                    elif scale_factor <= 30:
+                        scale_factor *= 2
+                    elif scale_factor <= 40:
+                        scale_factor *= 1.5
+                    # scale_factor *= 1.5
+
                     # LOGGER.info(f"Width: {width}, Height: {height}")  
                      
 
@@ -563,9 +576,14 @@ def run(
                     fl = result_matrix[1]
                     bl = result_matrix[2]
                     br = result_matrix[3] 
+
+                    rect2 = (10, 10, 40, 40)
+                    annotator.box_label(rect2, str(silo_center), color=(0, 0, 0))
+                    print("Silo Center : ", silo_center)
                     
-                    if -1 <= silo_center <= 3:
+                    if -3 <= silo_center <= 3:
                         print(" --------------- Aligned ---------------------")
+                        print("Silo Center : ", silo_center)
                         fr = 0
                         bl = 0
                         near_far = -5
@@ -630,6 +648,9 @@ def run(
                     # time.sleep(0.05)
                     ser.write(data.encode())  
                     LOGGER.info(f"Sent 5: {data}")
+                    if delay_stat:
+                        time.sleep(2)
+                        delay_stat = False
             
             elif ball_silo == 1:
                 fr = +0
@@ -685,6 +706,9 @@ def run(
             # time.sleep(0.05)
             ser.write(data.encode())  
             LOGGER.info(f"Sent 8: {data}")
+            if delay_stat:
+                time.sleep(2)
+                delay_stat = False
         elif ball_silo == 1:
             fr = +0
             fl = 0
