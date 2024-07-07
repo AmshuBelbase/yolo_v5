@@ -402,7 +402,7 @@ def run(
                             rect2 = (xyxy[0]+((xyxy[2]-xyxy[0])/2), xyxy[1], xyxy[2]-((xyxy[2]-xyxy[0])/2), xyxy[3])
                             annotator.box_label(rect2, str(xyxy[0] + ((xyxy[2]-xyxy[0])/2)- (int(width/4)+margin)), color=(0, 100, 0))
                             
-                            offset = int((width // 2)/3)
+                            offset = int((width // 2)/3) 
                             rect1 = (offset, 0, offset, height)  # (x, y, width, height)
                             rect2 = (xyxy[0], xyxy[1], xyxy[2]-xyxy[0], xyxy[3]-xyxy[1])  # (x, y, width, height) 
                             int_area = intersection_area(rect1, rect2)
@@ -410,7 +410,14 @@ def run(
                             rect1 = (offset, 0, offset+offset, height)
                             annotator.box_label(rect1, "SILO RANGE", color=(0, 0, 0)) 
 
-                            if abs(silo_center) < 60: 
+                            # print("height: ", (xyxy[3] - xyxy[1]))
+                            # print("width: ", (xyxy[2] - xyxy[0]))
+                            # print("sILO cENTER: ", silo_center)
+
+                            # just_check = (int(width/4)-160, 0, int(width/4)+160, height)
+                            # annotator.box_label(just_check, "CHECK RANGE", color=(255, 0, 255))
+
+                            if abs(silo_center) < 160: 
                                 print(" !!!!!!!!!!!!!!!!!!!!!!! ----------- ALMOST ALIGNED ----------- !!!!!!!!!!!!!!!!!!!!!!! ")
                                 gint_area = 0 
 
