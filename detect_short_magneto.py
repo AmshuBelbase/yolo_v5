@@ -390,12 +390,12 @@ def run(
 
                             margin = 0
 
-                            silo_center =  xyxy[0] + ((xyxy[2]-xyxy[0])/2) - (int(width/4)+margin) # 73
+                            silo_center =  xyxy[0] + ((xyxy[2]-xyxy[0])/2) - (int(width/4)) # 73
 
-                            bot_center = (int(width/4)+margin-5, 0, int(width/4)+margin-5, height)
+                            bot_center = (int(width/4)-3, 0, int(width/4)-3, height)
                             annotator.box_label(bot_center, "Center Line L", color=colors(c, True))
 
-                            bot_center = (int(width/4)+margin+5, 0, int(width/4)+margin+5, height)
+                            bot_center = (int(width/4)+3, 0, int(width/4)+3, height)
                             annotator.box_label(bot_center, "Center Line R", color=colors(c, True))
 
                             rect2 = (xyxy[0]+((xyxy[2]-xyxy[0])/2), xyxy[1], xyxy[2]-((xyxy[2]-xyxy[0])/2), xyxy[3])
@@ -608,7 +608,7 @@ def run(
                     annotator.box_label(rect2, str(silo_center), color=(0, 0, 0))
                     print("Silo Center : ", silo_center)
                     
-                    if -2 <= silo_center <= 2:   # -3 3
+                    if -3 <= silo_center <= 3:   # -3 3
                         print(" --------------- Aligned ---------------------")
                         print("Silo Center : ", silo_center)
                         fr = 0
