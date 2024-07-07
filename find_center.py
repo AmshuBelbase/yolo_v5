@@ -13,11 +13,12 @@ def draw_center_line(frame):
     # cv2.line(frame, (0, 170), (width, 170), (0, 255, 0), thickness=2)
     # cv2.line(frame, (0, 200), (width, 200), (200, 255, 255), thickness=2)
     # cv2.line(frame, (0, 210), (width, 210), (255, 0, 255), thickness=2)
+    cv2.line(frame, (width//4, 0), (width//4, height), (255, 0, 255), thickness=2)
     offs = 38
     margin = 7
-    cv2.line(frame, ((width//4)+offs-margin, 0), ((width//4)+offs-margin, height), (255, 255, 0), thickness=2)
+    # cv2.line(frame, ((width//4)+offs-margin, 0), ((width//4)+offs-margin, height), (255, 255, 0), thickness=2)
     # cv2.line(frame, ((width//4)+offs, 0), ((width//4)+offs, height), (0, 255, 0), thickness=2)
-    cv2.line(frame, ((width//4)+offs+margin, 0), ((width//4)+offs+margin, height), (255, 255, 0), thickness=2)
+    # cv2.line(frame, ((width//4)+offs+margin, 0), ((width//4)+offs+margin, height), (255, 255, 0), thickness=2)
 
     # cv2.line(frame, (0+offset, 0), (0+offset, height), (0, 255, 0), thickness=2)
     # cv2.line(frame, (0+offset+offset, 0), (0+offset+offset, height), (200, 255, 255), thickness=2) 

@@ -100,7 +100,7 @@ def run(
     dnn=False,  # use OpenCV DNN for ONNX inference
     vid_stride=1,  # video frame-rate stride
 ):
-    global ball_silo, gint_area
+    global ball_silo, gint_area, delay_stat
     source = str(source)  
     webcam = source.isnumeric() or source.endswith(".streams") 
 
@@ -388,7 +388,7 @@ def run(
                                 return intersection_area
                             
 
-                            margin = 27
+                            margin = 0
 
                             silo_center =  xyxy[0] + ((xyxy[2]-xyxy[0])/2) - (int(width/4)+margin) # 73
 
@@ -413,7 +413,7 @@ def run(
                                 print(" !!!!!!!!!!!!!!!!!!!!!!! ----------- ALMOST ALIGNED ----------- !!!!!!!!!!!!!!!!!!!!!!! ")
                                 gint_area = 0 
 
-                            if arr_prio[c] != 30 and int_area > 0 and int_area > gint_area and ((xyxy[3] - xyxy[1]) > 180 or (xyxy[2] - xyxy[0])>90):
+                            if arr_prio[c] != 30 and int_area > 0 and int_area > gint_area and ((xyxy[3] - xyxy[1]) > 200 or (xyxy[2] - xyxy[0])>95):
                                 rect2 = (xyxy[0], xyxy[1], xyxy[2], xyxy[3])
                                 annotator.box_label(rect2, "SILO", color=(255, 255, 255))
                                 gint_area = int_area
@@ -424,7 +424,7 @@ def run(
                                 final_bottom_right_y = xyxy[3]
                                 final_xyxy = (final_top_left_x, final_top_left_y, final_bottom_right_x, final_bottom_right_y)
                             elif gint_area == 0:
-                                if arr_prio[c] != 30 and (((xyxy[3] - xyxy[1]) > 180 or (xyxy[2] - xyxy[0])>90) or (arr_prio[c] < arr_prio[prio_silo] or (arr_prio[c] == arr_prio[prio_silo] and abs(xyxy[0] - int(width/4)) < abs(final_top_left_x - int(width/4))))):     
+                                if arr_prio[c] != 30 and (((xyxy[3] - xyxy[1]) > 200 or (xyxy[2] - xyxy[0])>95) or (arr_prio[c] < arr_prio[prio_silo] or (arr_prio[c] == arr_prio[prio_silo] and abs(xyxy[0] - int(width/4)) < abs(final_top_left_x - int(width/4))))):     
                                     prio_silo = c
                                     final_top_left_x = xyxy[0]
                                     final_top_left_y = xyxy[1]
@@ -472,12 +472,14 @@ def run(
                         scale_factor = (dist_ball-i_min) * (o_max-o_min) / (i_max - i_min) + o_min
 
                     if scale_factor <= 10:
-                        scale_factor *= 5
+                        scale_factor *= 7
                     elif scale_factor <= 20:
-                        scale_factor *= 3
+                        scale_factor *= 5
                     elif scale_factor <= 30:
-                        scale_factor *= 2
+                        scale_factor *= 3
                     elif scale_factor <= 40:
+                        scale_factor *= 2
+                    elif scale_factor <= 50:
                         scale_factor *= 1.5
                     # scale_factor *= 1.5
 
@@ -523,7 +525,32 @@ def run(
                     fr /=1.5
                     fl /=1.5
                     br /=1.5
-                    bl /=1.5                        
+                    bl /=1.5     
+
+                    if (abs(fr) <= 20 or abs(bl) <= 20) and not (-11 <= fr <= -5):
+                        fr *= 2.9 
+                        fl *= 1 
+                        br *= 1 
+                        if final_top_left_y > 180:
+                            fl *= 2.9 
+                            br *= 2.9 
+                        bl *= 2.9 
+                    elif (abs(fr) <= 30 or abs(bl) <= 30) and not (-11 <= fr <= -5):
+                        fr *= 1.7
+                        fl *= 1 
+                        br *= 1
+                        if final_top_left_y > 180:
+                            fl *= 1.7
+                            br *= 1.7
+                        bl *= 1.7 
+                    elif abs(fr) <= 40 and abs(bl) <= 40 and not (-11 <= fr <= -5):
+                        fr *= 1.3
+                        fl *= 1 
+                        br *= 1 
+                        if final_top_left_y > 180:
+                            fl *= 1.3
+                            br *= 1.3
+                        bl *= 1.3 
 
                     # Convert to bytes
                     data = (str(int(fr)) + '|' + 
@@ -557,7 +584,7 @@ def run(
                                         [0, -15.75,-5.66909078166105]])  
                     
                     near_far = -4 #  -1 : No Detection | -3 : Near | -4 : Far | -5 : Aligned
-                    silo_center =  final_top_left_x + (box_width/2) - (int(width/4)+27)
+                    silo_center =  final_top_left_x + (box_width/2) - (int(width/4))
                     if box_height > 180 or box_width>90:  # 150 75
                         near_far = -3 
                         print("Silo Center : ", silo_center) 
@@ -581,7 +608,7 @@ def run(
                     annotator.box_label(rect2, str(silo_center), color=(0, 0, 0))
                     print("Silo Center : ", silo_center)
                     
-                    if -3 <= silo_center <= 3:
+                    if -2 <= silo_center <= 2:   # -3 3
                         print(" --------------- Aligned ---------------------")
                         print("Silo Center : ", silo_center)
                         fr = 0
