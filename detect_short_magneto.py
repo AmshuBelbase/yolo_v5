@@ -16,6 +16,8 @@
     
 #     $ python3 detect.py --weights runs/train/exp/weights/best.pt --source videos/video19.mp4 --data data/custom_data.yaml
 #     $ python3 detect_short.py 
+
+# amshu
 # """
 
 import argparse 
