@@ -33,7 +33,6 @@ import torch
 import serial 
 import matplotlib.pyplot as plt  
 
-time.sleep(5)
 gint_area = 0
 delay_stat = False
 
