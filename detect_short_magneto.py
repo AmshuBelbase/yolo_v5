@@ -417,7 +417,7 @@ def run(
                             # just_check = (int(width/4)-160, 0, int(width/4)+160, height)
                             # annotator.box_label(just_check, "CHECK RANGE", color=(255, 0, 255))
 
-                            if abs(silo_center) < 160: 
+                            if abs(silo_center) < 175: 
                                 print(" !!!!!!!!!!!!!!!!!!!!!!! ----------- ALMOST ALIGNED ----------- !!!!!!!!!!!!!!!!!!!!!!! ")
                                 gint_area = 0 
 
