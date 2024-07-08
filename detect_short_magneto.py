@@ -539,7 +539,7 @@ def run(
                         fr *= 2.9 
                         fl *= 1 
                         br *= 1 
-                        if final_top_left_y > 180:
+                        if final_top_left_y > 160:
                             fl *= 2.9 
                             br *= 2.9 
                         bl *= 2.9 
@@ -547,7 +547,7 @@ def run(
                         fr *= 1.7
                         fl *= 1 
                         br *= 1
-                        if final_top_left_y > 180:
+                        if final_top_left_y > 160:
                             fl *= 1.7
                             br *= 1.7
                         bl *= 1.7 
@@ -555,7 +555,7 @@ def run(
                         fr *= 1.3
                         fl *= 1 
                         br *= 1 
-                        if final_top_left_y > 180:
+                        if final_top_left_y > 160:
                             fl *= 1.3
                             br *= 1.3
                         bl *= 1.3 
