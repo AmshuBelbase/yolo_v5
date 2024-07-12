@@ -35,7 +35,7 @@ import matplotlib.pyplot as plt
 
 gint_area = 0
 delay_stat = False
-neglect_ball_class = 1
+neglect_ball_class = 0
 
 bot_default_turn_speed = 27
 bot_default_turn_speed_ball = 30
