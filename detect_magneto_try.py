@@ -16,6 +16,8 @@
     
 #     $ python3 detect.py --weights runs/train/exp/weights/best.pt --source videos/video19.mp4 --data data/custom_data.yaml
 #     $ python3 detect_short.py 
+
+# amshu
 # """
 
 import argparse 
@@ -31,9 +33,9 @@ import torch
 import serial 
 import matplotlib.pyplot as plt  
 
-time.sleep(5)
 gint_area = 0
 delay_stat = False
+neglect_ball_class = 0
 
 bot_default_turn_speed = 27
 bot_default_turn_speed_ball = 30
@@ -224,6 +226,8 @@ def run(
                             c = int(cls)  # integer class
                             label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
                             annotator.box_label(xyxy, label, color=colors(c, True))
+                        if c == neglect_ball_class:
+                            c = 2
                         if (c == 0 or c == 2 or c == 1) and ball_silo == 0:
                             # Define the original range
                             in_width_min = 0
@@ -246,10 +250,12 @@ def run(
                             if(h_dist < nearest):
                                 is_inside = False  
                                 offset = 15   
-                                if c == 2 or c == 1:  
+                                if c == 2:  
                                     counter_in = 0
                                     for *xyxy_in, conf_in, cls_in in reversed(short_det):
-                                        if counter != counter_in and (cls_in != 2 and cls_in != 1) and not is_inside and xyxy_in[0] < width/2 and xyxy_in[2] < width/2: 
+                                        if cls_in == neglect_ball_class:
+                                            cls_in = 2
+                                        if counter != counter_in and cls_in != 2 and not is_inside and xyxy_in[0] < width/2 and xyxy_in[2] < width/2: 
                                             vertices_rect_in = [
                                                 (xyxy_in[0], xyxy_in[1]),
                                                 (xyxy_in[0], xyxy_in[3]),
@@ -262,7 +268,7 @@ def run(
                                                 if (xyxy[0] - offset) <= x <= (xyxy[2] + offset) and (xyxy[1] - offset) <= y <= (xyxy[3]+ offset):
                                                     is_inside = True 
                                         counter_in += 1
-                                if is_inside or (c!=2 and c!=1): 
+                                if is_inside or c!=2: 
                                     inside_blue = False
                                     def intersection_area(rect1, rect2):
                                         # rect1 and rect2 are tuples in the format (x, y, width, height)
@@ -390,18 +396,18 @@ def run(
 
                             margin = 0
 
-                            silo_center =  xyxy[0] + ((xyxy[2]-xyxy[0])/2) - (int(width/4)+margin) # 73
+                            silo_center =  xyxy[0] + ((xyxy[2]-xyxy[0])/2) - (int(width/4)) # 73
 
-                            bot_center = (int(width/4)+margin-5, 0, int(width/4)+margin-5, height)
+                            bot_center = (int(width/4)-3, 0, int(width/4)-3, height)
                             annotator.box_label(bot_center, "Center Line L", color=colors(c, True))
 
-                            bot_center = (int(width/4)+margin+5, 0, int(width/4)+margin+5, height)
+                            bot_center = (int(width/4)+3, 0, int(width/4)+3, height)
                             annotator.box_label(bot_center, "Center Line R", color=colors(c, True))
 
                             rect2 = (xyxy[0]+((xyxy[2]-xyxy[0])/2), xyxy[1], xyxy[2]-((xyxy[2]-xyxy[0])/2), xyxy[3])
                             annotator.box_label(rect2, str(xyxy[0] + ((xyxy[2]-xyxy[0])/2)- (int(width/4)+margin)), color=(0, 100, 0))
                             
-                            offset = int((width // 2)/3)
+                            offset = int((width // 2)/3) 
                             rect1 = (offset, 0, offset, height)  # (x, y, width, height)
                             rect2 = (xyxy[0], xyxy[1], xyxy[2]-xyxy[0], xyxy[3]-xyxy[1])  # (x, y, width, height) 
                             int_area = intersection_area(rect1, rect2)
@@ -409,9 +415,14 @@ def run(
                             rect1 = (offset, 0, offset+offset, height)
                             annotator.box_label(rect1, "SILO RANGE", color=(0, 0, 0)) 
 
-                            print("Width : ", str(xyxy[2]-xyxy[0]), " Height : ", str(xyxy[3]-xyxy[1]))
+                            # print("height: ", (xyxy[3] - xyxy[1]))
+                            # print("width: ", (xyxy[2] - xyxy[0]))
+                            # print("sILO cENTER: ", silo_center)
 
-                            if abs(silo_center) < 60: 
+                            # just_check = (int(width/4)-160, 0, int(width/4)+160, height)
+                            # annotator.box_label(just_check, "CHECK RANGE", color=(255, 0, 255))
+
+                            if abs(silo_center) < 175: 
                                 print(" !!!!!!!!!!!!!!!!!!!!!!! ----------- ALMOST ALIGNED ----------- !!!!!!!!!!!!!!!!!!!!!!! ")
                                 gint_area = 0 
 
@@ -527,23 +538,32 @@ def run(
                     fr /=1.5
                     fl /=1.5
                     br /=1.5
-                    bl /=1.5                   
+                    bl /=1.5     
 
-                    if abs(fr) <= 20 and abs(bl) <= 20 and not (-11 <= fr <= -5):
-                        fr *= 2.5 
+                    if (abs(fr) <= 20 or abs(bl) <= 20) and not (-11 <= fr <= -5):
+                        fr *= 2.9 
                         fl *= 1 
                         br *= 1 
-                        bl *= 2.5
-                    elif abs(fr) <= 30 and abs(bl) <= 30 and not (-11 <= fr <= -5):
-                        fr *= 2.2 
+                        if final_top_left_y > 160:
+                            fl *= 2.9 
+                            br *= 2.9 
+                        bl *= 2.9 
+                    elif (abs(fr) <= 30 or abs(bl) <= 30) and not (-11 <= fr <= -5):
+                        fr *= 1.7
                         fl *= 1 
-                        br *= 1 
-                        bl *= 2.2
+                        br *= 1
+                        if final_top_left_y > 160:
+                            fl *= 1.7
+                            br *= 1.7
+                        bl *= 1.7 
                     elif abs(fr) <= 40 and abs(bl) <= 40 and not (-11 <= fr <= -5):
-                        fr *= 2
+                        fr *= 1.3
                         fl *= 1 
                         br *= 1 
-                        bl *= 2 
+                        if final_top_left_y > 160:
+                            fl *= 1.3
+                            br *= 1.3
+                        bl *= 1.3 
 
                     # Convert to bytes
                     data = (str(int(fr)) + '|' + 
@@ -601,7 +621,7 @@ def run(
                     annotator.box_label(rect2, str(silo_center), color=(0, 0, 0))
                     print("Silo Center : ", silo_center)
                     
-                    if -2 <= silo_center <= 2:   # -3 3
+                    if -3 <= silo_center <= 3:   # -3 3
                         print(" --------------- Aligned ---------------------")
                         print("Silo Center : ", silo_center)
                         fr = 0

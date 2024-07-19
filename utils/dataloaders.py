@@ -1,4 +1,4 @@
-# YOLOv5 🚀 by Ultralytics, AGPL-3.0 license
+# Ultralytics YOLOv5 🚀, AGPL-3.0 license
 """Dataloaders and dataset utils."""
 
 import contextlib
@@ -136,7 +136,7 @@ class SmartDistributedSampler(distributed.DistributedSampler):
         g = torch.Generator()
         g.manual_seed(self.seed + self.epoch)
 
-        # determine the the eventual size (n) of self.indices (DDP indices)
+        # determine the eventual size (n) of self.indices (DDP indices)
         n = int((len(self.dataset) - self.rank - 1) / self.num_replicas) + 1  # num_replicas == WORLD_SIZE
         idx = torch.randperm(n, generator=g)
         if not self.shuffle:
@@ -174,6 +174,7 @@ def create_dataloader(
     shuffle=False,
     seed=0,
 ):
+    """Creates and returns a configured DataLoader instance for loading and processing image datasets."""
     if rect and shuffle:
         LOGGER.warning("WARNING ⚠️ --rect is incompatible with DataLoader shuffle, setting shuffle=False")
         shuffle = False
@@ -552,6 +553,7 @@ class LoadImagesAndLabels(Dataset):
         rank=-1,
         seed=0,
     ):
+        """Initializes the YOLOv5 dataset loader, handling images and their labels, caching, and preprocessing."""
         self.img_size = img_size
         self.augment = augment
         self.hyp = hyp
@@ -1351,6 +1353,7 @@ def create_classification_dataloader(
     path, imgsz=224, batch_size=16, augment=True, cache=False, rank=-1, workers=8, shuffle=True
 ):
     # Returns Dataloader object to be used with YOLOv5 Classifier
+    """Creates a DataLoader for image classification, supporting caching, augmentation, and distributed training."""
     with torch_distributed_zero_first(rank):  # init dataset *.cache only once if DDP
         dataset = ClassificationDataset(root=path, imgsz=imgsz, augment=augment, cache=cache)
     batch_size = min(batch_size, len(dataset))

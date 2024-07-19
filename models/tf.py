@@ -1,4 +1,4 @@
-# YOLOv5 🚀 by Ultralytics, AGPL-3.0 license
+# Ultralytics YOLOv5 🚀, AGPL-3.0 license
 """
 TensorFlow, Keras and TFLite versions of YOLOv5
 Authored by https://github.com/zldrobit in PR https://github.com/ultralytics/yolov5/pull/1127
@@ -612,6 +612,7 @@ class TFModel:
         iou_thres=0.45,
         conf_thres=0.25,
     ):
+        """Runs inference on input data, with an option for TensorFlow NMS."""
         y = []  # outputs
         x = inputs
         for m in self.model.layers:
@@ -730,6 +731,7 @@ def run(
     dynamic=False,  # dynamic batch size
 ):
     # PyTorch model
+    """Exports YOLOv5 model from PyTorch to TensorFlow and Keras formats, performing inference for validation."""
     im = torch.zeros((batch_size, 3, *imgsz))  # BCHW image
     model = attempt_load(weights, device=torch.device("cpu"), inplace=True, fuse=False)
     _ = model(im)  # inference

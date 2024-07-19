@@ -1,4 +1,4 @@
-# YOLOv5 🚀 by Ultralytics, AGPL-3.0 license
+# Ultralytics YOLOv5 🚀, AGPL-3.0 license
 """Model validation metrics."""
 
 import numpy as np
@@ -55,6 +55,9 @@ def ap_per_class_box_and_mask(
 
 class Metric:
     def __init__(self) -> None:
+        """Initializes performance metric attributes for precision, recall, F1 score, average precision, and class
+        indices.
+        """
         self.p = []  # (nc, )
         self.r = []  # (nc, )
         self.f1 = []  # (nc, )
@@ -151,6 +154,9 @@ class Metrics:
     """Metric for boxes and masks."""
 
     def __init__(self) -> None:
+        """Initializes Metric objects for bounding boxes and masks to compute performance metrics in the Metrics
+        class.
+        """
         self.metric_box = Metric()
         self.metric_mask = Metric()
 

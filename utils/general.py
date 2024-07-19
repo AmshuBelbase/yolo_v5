@@ -1,4 +1,4 @@
-# YOLOv5 🚀 by Ultralytics, AGPL-3.0 license
+# Ultralytics YOLOv5 🚀, AGPL-3.0 license
 """General utils."""
 
 import contextlib
@@ -59,7 +59,7 @@ DATASETS_DIR = Path(os.getenv("YOLOv5_DATASETS_DIR", ROOT.parent / "datasets")) 
 AUTOINSTALL = str(os.getenv("YOLOv5_AUTOINSTALL", True)).lower() == "true"  # global auto-install mode
 VERBOSE = str(os.getenv("YOLOv5_VERBOSE", True)).lower() == "true"  # global verbose mode
 TQDM_BAR_FORMAT = "{l_bar}{bar:10}{r_bar}"  # tqdm bar format
-FONT = "Arial.ttf"  # https://ultralytics.com/assets/Arial.ttf
+FONT = "Arial.ttf"  # https://github.com/ultralytics/assets/releases/download/v0.0.0/Arial.ttf
 
 torch.set_printoptions(linewidth=320, precision=5, profile="long")
 np.set_printoptions(linewidth=320, formatter={"float_kind": "{:11.5g}".format})  # format short g, %precision=5
@@ -68,6 +68,8 @@ cv2.setNumThreads(0)  # prevent OpenCV from multithreading (incompatible with Py
 os.environ["NUMEXPR_MAX_THREADS"] = str(NUM_THREADS)  # NumExpr max threads
 os.environ["OMP_NUM_THREADS"] = "1" if platform.system() == "darwin" else str(NUM_THREADS)  # OpenMP (PyTorch and SciPy)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # suppress verbose TF compiler warnings in Colab
+os.environ["TORCH_CPP_LOG_LEVEL"] = "ERROR"  # suppress "NNPACK.cpp could not initialize NNPACK" warnings
+os.environ["KINETO_LOG_LEVEL"] = "5"  # suppress verbose PyTorch profiler output when computing FLOPs
 
 
 def is_ascii(s=""):
@@ -341,7 +343,7 @@ def check_online():
     import socket
 
     def run_once():
-        # Check once
+        """Checks internet connectivity by attempting to create a connection to "1.1.1.1" on port 443."""
         try:
             socket.create_connection(("1.1.1.1", 443), 5)  # check host accessibility
             return True
@@ -509,7 +511,7 @@ def check_font(font=FONT, progress=False):
     font = Path(font)
     file = CONFIG_DIR / font.name
     if not font.exists() and not file.exists():
-        url = f"https://ultralytics.com/assets/{font.name}"
+        url = f"https://github.com/ultralytics/assets/releases/download/v0.0.0/{font.name}"
         LOGGER.info(f"Downloading {url} to {file}...")
         torch.hub.download_url_to_file(url, str(file), progress=progress)
 
@@ -585,7 +587,7 @@ def check_amp(model):
     from models.common import AutoShape, DetectMultiBackend
 
     def amp_allclose(model, im):
-        # All close FP32 vs AMP results
+        """Compares FP32 and AMP model inference outputs, ensuring they are close within a 10% absolute tolerance."""
         m = AutoShape(model, verbose=False)  # model
         a = m(im).xywhn[0]  # FP32 inference
         m.amp = True
@@ -614,10 +616,12 @@ def yaml_load(file="data.yaml"):
         return yaml.safe_load(f)
 
 
-def yaml_save(file="data.yaml", data={}):
+def yaml_save(file="data.yaml", data=None):
     """Safely saves `data` to a YAML file specified by `file`, converting `Path` objects to strings; `data` is a
     dictionary.
     """
+    if data is None:
+        data = {}
     with open(file, "w") as f:
         yaml.safe_dump({k: str(v) if isinstance(v, Path) else v for k, v in data.items()}, f, sort_keys=False)
 
@@ -648,7 +652,7 @@ def download(url, dir=".", unzip=True, delete=True, curl=False, threads=1, retry
     """Downloads and optionally unzips files concurrently, supporting retries and curl fallback."""
 
     def download_one(url, dir):
-        # Download 1 file
+        """Downloads a single file from `url` to `dir`, with retry support and optional curl fallback."""
         success = True
         if os.path.isfile(url):
             f = Path(url)  # filename

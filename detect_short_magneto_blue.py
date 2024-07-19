@@ -40,7 +40,7 @@ neglect_ball_class = 0
 bot_default_turn_speed = 27
 bot_default_turn_speed_ball = 30
 
-ball_silo = 2 # 0 : ball | 1 : silo
+ball_silo = 0 # 0 : ball | 1 : silo
 almost_aligned = False
 cam_source = 2
 serial_port = '/dev/ttyACM0'
